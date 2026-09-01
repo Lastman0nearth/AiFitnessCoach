@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-obsidian: #0a0a0a;
+  --color-charcoal: #17171a;
+  --color-charcoal-light: #202024;
+  --color-protein: #22d3ee;
+  --color-calorie: #a3e635;
+  --color-hydration: #38bdf8;
+  --color-warning: #f43f5e;
+  --color-alert: #f59e0b;
+}
+
+body {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}

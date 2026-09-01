@@ -1,0 +1,9 @@
+export {};
+
+declare global {
+  interface Env {
+    DB: D1Database;
+    ASSETS: Fetcher;
+    ANTHROPIC_API_KEY: string;
+  }
+}
