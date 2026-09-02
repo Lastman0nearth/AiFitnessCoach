@@ -1,9 +1,11 @@
 // Google AI Studio's Gemini API has a genuine free tier (no credit card,
 // ever) for Flash-class models — that's why this app uses Gemini instead of
 // a metered API. A cheap/fast model handles typed or spoken text, the
-// stronger Flash model only when a photo is involved.
-const TEXT_MODEL = "gemini-2.5-flash-lite";
-const VISION_MODEL = "gemini-2.5-flash";
+// stronger Flash model only when a photo is involved. Thinking is capped at
+// LOW: these are simple structured-extraction calls, not reasoning tasks,
+// and full thinking mode burns ~20x the tokens for no accuracy gain here.
+const TEXT_MODEL = "gemini-3.5-flash-lite";
+const VISION_MODEL = "gemini-3.5-flash";
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 interface GeminiPart {
@@ -20,13 +22,16 @@ interface StructuredCallOptions {
 }
 
 async function callGeminiStructured<T>(opts: StructuredCallOptions): Promise<T> {
-  const res = await fetch(`${API_BASE}/${opts.model}:generateContent?key=${opts.apiKey}`, {
+  // x-goog-api-key header, not ?key= query param — avoids the key leaking
+  // into URLs, proxies, and server logs.
+  const res = await fetch(`${API_BASE}/${opts.model}:generateContent`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-goog-api-key": opts.apiKey },
     body: JSON.stringify({
       system_instruction: { parts: [{ text: opts.system }] },
       contents: [{ role: "user", parts: opts.parts }],
       generationConfig: {
+        thinkingConfig: { thinkingLevel: "LOW" },
         responseMimeType: "application/json",
         responseSchema: opts.responseSchema,
       },
