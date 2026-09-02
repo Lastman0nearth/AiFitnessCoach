@@ -21,31 +21,55 @@ interface StructuredCallOptions {
   responseSchema: Record<string, unknown>;
 }
 
-async function callGeminiStructured<T>(opts: StructuredCallOptions): Promise<T> {
-  // x-goog-api-key header, not ?key= query param — avoids the key leaking
-  // into URLs, proxies, and server logs.
-  const res = await fetch(`${API_BASE}/${opts.model}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": opts.apiKey },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: opts.system }] },
-      contents: [{ role: "user", parts: opts.parts }],
-      generationConfig: {
-        thinkingConfig: { thinkingLevel: "LOW" },
-        responseMimeType: "application/json",
-        responseSchema: opts.responseSchema,
-      },
-    }),
-  });
+const RETRYABLE_STATUS = new Set([429, 503]);
+const MAX_ATTEMPTS = 3;
 
-  if (!res.ok) {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGeminiStructured<T>(opts: StructuredCallOptions): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // x-goog-api-key header, not ?key= query param — avoids the key leaking
+    // into URLs, proxies, and server logs.
+    const res = await fetch(`${API_BASE}/${opts.model}:generateContent`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": opts.apiKey },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: opts.system }] },
+        contents: [{ role: "user", parts: opts.parts }],
+        generationConfig: {
+          thinkingConfig: { thinkingLevel: "LOW" },
+          responseMimeType: "application/json",
+          responseSchema: opts.responseSchema,
+        },
+      }),
+    });
+
+    if (res.ok) {
+      return parseGeminiResponse<T>(await res.json());
+    }
+
     const body = await res.text();
-    throw new Error(`Gemini API error (${res.status}): ${body}`);
+    lastError = new Error(`Gemini API error (${res.status}): ${body}`);
+
+    // The free tier occasionally returns 503 (model overloaded) or 429
+    // (rate limited) under transient load — worth a couple of quick
+    // retries before surfacing an error to the user.
+    if (!RETRYABLE_STATUS.has(res.status) || attempt === MAX_ATTEMPTS) {
+      throw lastError;
+    }
+    await sleep(attempt * 500);
   }
 
-  const data = (await res.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
+  throw lastError ?? new Error("Gemini API call failed");
+}
+
+function parseGeminiResponse<T>(data: {
+  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+}): T {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) {
     throw new Error("Gemini response did not include the expected content");
