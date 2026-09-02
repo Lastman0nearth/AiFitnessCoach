@@ -100,6 +100,28 @@ export interface FoodItem {
 
 export type Lift = "bench" | "row" | "deadlift" | "squat" | "ohp";
 
+export interface StrengthEntry {
+  id: string;
+  date: string;
+  lift: Lift;
+  topWeightLbs: number;
+}
+
+export interface RunEntry {
+  id: string;
+  date: string;
+  loggedAt: number;
+  distanceKm: number;
+  pace: string | null;
+}
+
+export interface HydrationEntry {
+  id: string;
+  date: string;
+  loggedAt: number;
+  gallons: number;
+}
+
 export interface WorkoutEntry {
   id: string;
   date: string;

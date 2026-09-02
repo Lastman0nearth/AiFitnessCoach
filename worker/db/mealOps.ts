@@ -1,9 +1,6 @@
-import { eq } from "drizzle-orm";
 import type { Db } from "./client";
-import { dailyLogs, mealEntries } from "./schema";
-import { accumulate, type MacroTotals } from "../lib/macros";
-
-type DailyLog = typeof dailyLogs.$inferSelect;
+import { mealEntries } from "./schema";
+import type { MacroTotals } from "../lib/macros";
 
 export interface MealInput extends MacroTotals {
   description: string;
@@ -11,27 +8,22 @@ export interface MealInput extends MacroTotals {
   rawInput?: string;
 }
 
-export async function logMeal(db: Db, userId: string, log: DailyLog, meal: MealInput) {
-  await db.insert(mealEntries).values({
-    id: crypto.randomUUID(),
-    userId,
-    dailyLogId: log.id,
-    loggedAt: Date.now(),
-    description: meal.description,
-    source: meal.source,
-    calories: meal.calories,
-    proteinG: meal.proteinG,
-    fatG: meal.fatG,
-    carbsG: meal.carbsG,
-    rawInput: meal.rawInput,
-  });
-
-  const totals = accumulate(log, meal);
-  const [updated] = await db
-    .update(dailyLogs)
-    .set(totals)
-    .where(eq(dailyLogs.id, log.id))
+export async function logMeal(db: Db, userId: string, dailyLogId: string, meal: MealInput) {
+  const [created] = await db
+    .insert(mealEntries)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      dailyLogId,
+      loggedAt: Date.now(),
+      description: meal.description,
+      source: meal.source,
+      calories: meal.calories,
+      proteinG: meal.proteinG,
+      fatG: meal.fatG,
+      carbsG: meal.carbsG,
+      rawInput: meal.rawInput,
+    })
     .returning();
-
-  return updated;
+  return created;
 }

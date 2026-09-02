@@ -19,6 +19,7 @@ export const api = {
   strengthLatest: () => request("/strength/latest"),
 
   logMeal: (body: unknown) => request("/meals", { method: "POST", body: JSON.stringify(body) }),
+  deleteMeal: (id: string) => request(`/meals/${id}`, { method: "DELETE" }),
   parseText: (text: string) =>
     request("/meals/parse-text", { method: "POST", body: JSON.stringify({ text }) }),
   parsePhoto: (imageBase64: string, mediaType: string) =>
@@ -34,12 +35,17 @@ export const api = {
 
   logHydration: (body: { addGallons?: number; electrolytesReplenished?: boolean; date?: string }) =>
     request("/hydration", { method: "POST", body: JSON.stringify(body) }),
+  deleteHydration: (id: string) => request(`/hydration/${id}`, { method: "DELETE" }),
+  todaysHydration: (date?: string) => request(`/hydration${date ? `?date=${date}` : ""}`),
 
   logStrength: (body: { lift: string; topWeightLbs: number; date?: string }) =>
     request("/strength", { method: "POST", body: JSON.stringify(body) }),
+  deleteStrength: (id: string) => request(`/strength/${id}`, { method: "DELETE" }),
 
   logRun: (body: { distanceKm: number; pace?: string; date?: string }) =>
     request("/runs", { method: "POST", body: JSON.stringify(body) }),
+  deleteRun: (id: string) => request(`/runs/${id}`, { method: "DELETE" }),
+  todaysRuns: (date?: string) => request(`/runs${date ? `?date=${date}` : ""}`),
 
   logWeight: (weightLbs: number, date?: string) =>
     request("/weight", { method: "POST", body: JSON.stringify({ weightLbs, date }) }),
@@ -52,5 +58,9 @@ export const api = {
     reps?: number;
     date?: string;
   }) => request("/workouts", { method: "POST", body: JSON.stringify(body) }),
+  deleteWorkout: (id: string) => request(`/workouts/${id}`, { method: "DELETE" }),
   todaysWorkouts: (date?: string) => request(`/workouts${date ? `?date=${date}` : ""}`),
+
+  historyDates: () => request("/history/dates"),
+  historySummary: (date: string) => request(`/history/summary?date=${date}`),
 };

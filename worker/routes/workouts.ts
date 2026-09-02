@@ -75,3 +75,14 @@ workoutsRoute.get("/", async (c) => {
     .orderBy(asc(workoutEntries.loggedAt));
   return c.json({ entries });
 });
+
+workoutsRoute.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb(c.env);
+  const [deleted] = await db
+    .delete(workoutEntries)
+    .where(and(eq(workoutEntries.id, id), eq(workoutEntries.userId, userId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Not found" }, 404);
+  return c.json({ deleted: true });
+});

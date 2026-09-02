@@ -1,6 +1,5 @@
-import type { dailyLogs, blueprintConfig } from "../db/schema";
+import type { blueprintConfig } from "../db/schema";
 
-type DailyLog = typeof dailyLogs.$inferSelect;
 type BlueprintConfig = typeof blueprintConfig.$inferSelect;
 
 export interface MacroTotals {
@@ -25,9 +24,28 @@ const FAT_KCAL_PER_G = 9;
 const PROTEIN_KCAL_PER_G = 4;
 const CARB_KCAL_PER_G = 4;
 
-export function computeRemaining(log: DailyLog, config: BlueprintConfig): RemainingBudget {
-  const caloriesRemaining = Math.round(log.targetCalories - log.caloriesConsumed);
-  const proteinRemainingG = Math.max(0, Math.round(config.proteinFloorG - log.proteinGConsumed));
+/** Maps a day-view's renamed *Consumed fields back to plain MacroTotals. */
+export function toMacroTotals(view: {
+  caloriesConsumed: number;
+  proteinGConsumed: number;
+  fatGConsumed: number;
+  carbsGConsumed: number;
+}): MacroTotals {
+  return {
+    calories: view.caloriesConsumed,
+    proteinG: view.proteinGConsumed,
+    fatG: view.fatGConsumed,
+    carbsG: view.carbsGConsumed,
+  };
+}
+
+export function computeRemaining(
+  targetCalories: number,
+  totals: MacroTotals,
+  config: BlueprintConfig,
+): RemainingBudget {
+  const caloriesRemaining = Math.round(targetCalories - totals.calories);
+  const proteinRemainingG = Math.max(0, Math.round(config.proteinFloorG - totals.proteinG));
 
   // Calories left after reserving room for the remaining protein floor,
   // converted to a fat budget so a late-day meal doesn't blow the day.
@@ -43,16 +61,7 @@ export function computeRemaining(log: DailyLog, config: BlueprintConfig): Remain
     proteinRemainingG,
     fatBudgetLeftG,
     carbsRemainingG,
-    proteinFloorMet: log.proteinGConsumed >= config.proteinFloorG,
-    overCalorieBudget: log.caloriesConsumed > log.targetCalories,
-  };
-}
-
-export function accumulate(log: DailyLog, meal: MacroTotals) {
-  return {
-    caloriesConsumed: log.caloriesConsumed + meal.calories,
-    proteinGConsumed: log.proteinGConsumed + meal.proteinG,
-    fatGConsumed: log.fatGConsumed + meal.fatG,
-    carbsGConsumed: log.carbsGConsumed + meal.carbsG,
+    proteinFloorMet: totals.proteinG >= config.proteinFloorG,
+    overCalorieBudget: totals.calories > targetCalories,
   };
 }

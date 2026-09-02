@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, History, X } from "lucide-react";
 import { api } from "./lib/api";
 import type {
   BlueprintConfig,
   FoodItem,
+  HydrationEntry,
+  RunEntry,
   ScheduleEntry,
   TodayResponse,
   UserProfile,
@@ -19,6 +21,7 @@ import { WeeklyVolumeMatrix } from "./components/WeeklyVolumeMatrix";
 import { AlertBanner } from "./components/AlertBanner";
 import { MealLogger } from "./components/MealLogger";
 import { ActivityLogger } from "./components/ActivityLogger";
+import { HistorySidebar } from "./components/HistorySidebar";
 
 interface LiftStatus {
   lift: string;
@@ -39,13 +42,16 @@ export default function App() {
   const [weightHistory, setWeightHistory] = useState<{ date: string; weightLbs: number }[]>([]);
   const [lifts, setLifts] = useState<LiftStatus[]>([]);
   const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutEntry[]>([]);
+  const [todaysRuns, setTodaysRuns] = useState<RunEntry[]>([]);
+  const [hydrationEntries, setHydrationEntries] = useState<HydrationEntry[]>([]);
   const [weightInput, setWeightInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     try {
-      const [t, bp, fl, wv, wh, sl, wk] = await Promise.all([
+      const [t, bp, fl, wv, wh, sl, wk, rn, hy] = await Promise.all([
         api.today() as Promise<TodayResponse>,
         api.blueprint() as Promise<{ config: BlueprintConfig; schedule: ScheduleEntry[]; user: UserProfile }>,
         api.foodLibrary() as Promise<{ items: FoodItem[] }>,
@@ -53,6 +59,8 @@ export default function App() {
         api.weightHistory() as Promise<{ history: { date: string; weightLbs: number }[] }>,
         api.strengthLatest() as Promise<{ lifts: LiftStatus[] }>,
         api.todaysWorkouts() as Promise<{ entries: WorkoutEntry[] }>,
+        api.todaysRuns() as Promise<{ entries: RunEntry[] }>,
+        api.todaysHydration() as Promise<{ entries: HydrationEntry[] }>,
       ]);
       setToday(t);
       setUser(bp.user);
@@ -61,6 +69,8 @@ export default function App() {
       setWeightHistory(wh.history);
       setLifts(sl.lifts);
       setTodaysWorkouts(wk.entries);
+      setTodaysRuns(rn.entries);
+      setHydrationEntries(hy.entries);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -111,6 +121,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-obsidian pb-10 text-zinc-100">
       <div className="mx-auto flex max-w-md flex-col gap-5 p-4 sm:max-w-lg">
+        <div className="flex justify-end">
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="flex items-center gap-1 rounded-lg bg-charcoal px-3 py-1.5 text-xs font-medium text-zinc-400 hover:text-zinc-100"
+          >
+            <History size={14} /> History
+          </button>
+        </div>
+
         {config.autoregulationActive && (
           <AlertBanner
             variant="warning"
@@ -205,9 +224,11 @@ export default function App() {
         <div className="rounded-2xl bg-charcoal p-4">
           <QuickLogConsole
             foods={foods}
+            hydrationEntries={hydrationEntries}
             busy={busy}
             onQuickLogFood={(id) => withBusy(() => api.quickLogFood(id))}
             onAddWater={(gal) => withBusy(() => api.logHydration({ addGallons: gal }))}
+            onDeleteHydration={(id) => withBusy(() => api.deleteHydration(id))}
           />
         </div>
 
@@ -222,11 +243,21 @@ export default function App() {
             </div>
             <ul className="space-y-1 text-xs text-zinc-300">
               {today.meals.map((m) => (
-                <li key={m.id} className="flex justify-between border-t border-zinc-800 py-1.5 first:border-t-0">
-                  <span>{m.description}</span>
-                  <span className="text-zinc-500">
-                    {Math.round(m.calories)} kcal / {Math.round(m.proteinG)}g P
-                  </span>
+                <li key={m.id} className="flex items-center justify-between border-t border-zinc-800 py-1.5 first:border-t-0">
+                  <span className="truncate pr-2">{m.description}</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-zinc-500">
+                      {Math.round(m.calories)} kcal / {Math.round(m.proteinG)}g P
+                    </span>
+                    <button
+                      onClick={() => withBusy(() => api.deleteMeal(m.id))}
+                      disabled={busy}
+                      className="text-zinc-500 hover:text-warning disabled:opacity-50"
+                      aria-label="Delete meal"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -234,7 +265,7 @@ export default function App() {
         )}
 
         <div className="rounded-2xl bg-charcoal p-4">
-          <ActivityLogger todaysWorkouts={todaysWorkouts} onLogged={loadAll} />
+          <ActivityLogger todaysWorkouts={todaysWorkouts} todaysRuns={todaysRuns} onLogged={loadAll} />
         </div>
 
         <div className="rounded-2xl bg-charcoal p-4">
@@ -254,6 +285,8 @@ export default function App() {
 
         {error && <p className="text-center text-xs text-warning">{error}</p>}
       </div>
+
+      <HistorySidebar open={historyOpen} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }

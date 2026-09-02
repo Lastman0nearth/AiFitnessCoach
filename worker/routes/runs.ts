@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import { desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { dailyLogs } from "../db/schema";
+import { dailyLogs, runEntries } from "../db/schema";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
+import { sumRuns } from "../lib/aggregates";
 import { getOrCreateDailyLog, getSchedule, todayIso } from "../lib/dailyLog";
 
 export const runsRoute = new Hono<{ Bindings: Env }>();
@@ -23,17 +24,42 @@ runsRoute.post("/", async (c) => {
   const db = getDb(c.env);
   const log = await getOrCreateDailyLog(db, userId, date);
 
-  const [updated] = await db
-    .update(dailyLogs)
-    .set({
-      distanceKmActual: log.distanceKmActual + body.distanceKm,
-      paceActual: body.pace ?? log.paceActual,
-      amCardioDone: true,
-    })
-    .where(eq(dailyLogs.id, log.id))
-    .returning();
+  await db.insert(runEntries).values({
+    id: crypto.randomUUID(),
+    userId,
+    date,
+    loggedAt: Date.now(),
+    distanceKm: body.distanceKm,
+    pace: body.pace,
+  });
 
-  return c.json({ log: updated });
+  if (!log.amCardioDone) {
+    await db.update(dailyLogs).set({ amCardioDone: true }).where(eq(dailyLogs.id, log.id));
+  }
+
+  return c.json({ logged: true });
+});
+
+runsRoute.get("/", async (c) => {
+  const date = c.req.query("date") ?? todayIso();
+  const db = getDb(c.env);
+  const entries = await db
+    .select()
+    .from(runEntries)
+    .where(and(eq(runEntries.userId, userId), eq(runEntries.date, date)))
+    .orderBy(asc(runEntries.loggedAt));
+  return c.json({ entries });
+});
+
+runsRoute.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb(c.env);
+  const [deleted] = await db
+    .delete(runEntries)
+    .where(and(eq(runEntries.id, id), eq(runEntries.userId, userId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Not found" }, 404);
+  return c.json({ deleted: true });
 });
 
 // Last 7 days of planned-vs-actual running volume for the dashboard matrix.
@@ -48,13 +74,16 @@ runsRoute.get("/weekly-volume", async (c) => {
 
   const rows = await Promise.all(
     logs.map(async (log) => {
-      const schedule = await getSchedule(db, userId, log.date);
+      const [schedule, runs] = await Promise.all([
+        getSchedule(db, userId, log.date),
+        sumRuns(db, userId, log.date),
+      ]);
       return {
         date: log.date,
         label: schedule?.amActivity ?? "Rest",
         goalKm: schedule?.distanceKmGoal ?? null,
-        actualKm: log.distanceKmActual,
-        pace: log.paceActual,
+        actualKm: runs.distanceKm,
+        pace: runs.lastPace,
       };
     }),
   );

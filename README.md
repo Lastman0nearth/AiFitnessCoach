@@ -84,9 +84,13 @@ Core tables (see `worker/db/schema.ts`):
   hydration target). The 10% Autoregulatory Strength Rule rewrites this row directly.
 - `weekly_schedule` — the Master Weekly Schedule (day type, target calories, planned
   activities, planned running distance)
-- `daily_logs` — one row per day: macro accumulation, weight, hydration, workout flags
-- `meal_entries` — every logged meal, tagged by source (manual / text_parsed /
-  photo_parsed / quick_log)
+- `daily_logs` — a pure day descriptor (date, day type, target calories, weight, workout
+  flags). It is NOT an accumulator: calories/protein/fat/carbs/hydration/distance are
+  always computed live by summing the itemized entry tables below, so deleting or
+  editing an entry can never leave a stale running total behind.
+- `meal_entries`, `hydration_entries`, `run_entries`, `workout_entries` — itemized logs,
+  each individually deletable (`DELETE /api/meals/:id`, etc.). Meals are tagged by
+  source (manual / text_parsed / photo_parsed / quick_log).
 - `strength_metrics` — compound lift top-weight history, feeds the autoregulation check
 - `food_library` — fixed-serving packaged items only (e.g. Iron Vegan, Hemp Pro Fiber).
   Per the "no portion guessing" rule, whole/variable foods are never seeded here with
@@ -104,18 +108,20 @@ values are best-effort placeholders where the blueprint doc only specified prote
 |---|---|
 | `GET /api/today` | Today's schedule, log, remaining macro budget, meals |
 | `GET /api/blueprint` | Config + weekly schedule + user profile |
-| `POST /api/meals` | Log a meal with known exact macros |
+| `POST /api/meals`, `DELETE /api/meals/:id` | Log / remove a meal with known exact macros |
 | `POST /api/meals/parse-text` | Gemini parses a typed/spoken meal description |
 | `POST /api/meals/parse-photo` | Gemini vision reads a nutrition label or plate photo |
 | `POST /api/meals/suggest` | Meal Prep Solver — a recipe that fits the remaining budget |
-| `POST /api/strength` | Log a lift; runs the 10% Autoregulatory Strength Rule check |
-| `GET /api/strength/latest` | Latest top weight + warning flag per lift |
-| `POST /api/hydration` | Log fluid intake / electrolyte replenishment |
+| `POST /api/strength`, `DELETE /api/strength/:id` | Log / remove a lift; logging runs the 10% Autoregulatory Strength Rule check |
+| `GET /api/strength/latest`, `GET /api/strength/:lift/history` | Lift status + recent history |
+| `POST /api/hydration`, `DELETE /api/hydration/:id`, `GET /api/hydration` | Log / remove / list fluid intake |
 | `GET/POST /api/food-library` | Quick-log food presets |
 | `POST /api/food-library/:id/quick-log` | One-tap log of a preset item |
-| `POST /api/runs`, `GET /api/runs/weekly-volume` | Planned vs. actual running volume |
+| `POST /api/runs`, `DELETE /api/runs/:id`, `GET /api/runs` | Log / remove / list runs |
+| `GET /api/runs/weekly-volume` | Planned vs. actual running volume |
 | `POST /api/weight`, `GET /api/weight/history` | Weight trend tracking |
-| `POST /api/workouts`, `GET /api/workouts` | General activity log — weights, resistance bands, kettlebells |
+| `POST /api/workouts`, `DELETE /api/workouts/:id`, `GET /api/workouts` | General activity log — weights, resistance bands, kettlebells |
+| `GET /api/history/dates`, `GET /api/history/summary?date=` | Browse any past day read-only, without creating a row for empty dates |
 | `GET /api/export.csv` | Flattened daily history as CSV |
 
 ## Roadmap (not in this build)

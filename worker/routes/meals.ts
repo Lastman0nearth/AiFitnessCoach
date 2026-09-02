@@ -1,11 +1,12 @@
 import { Hono } from "hono";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { logMeal } from "../db/mealOps";
+import { foodLibrary, mealEntries } from "../db/schema";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
-import { getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
-import { computeRemaining } from "../lib/macros";
+import { buildDayView, getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
+import { computeRemaining, toMacroTotals } from "../lib/macros";
 import { photoParseLabel, suggestMeal, textParseMeal } from "../lib/gemini";
-import { foodLibrary } from "../db/schema";
 
 export const mealsRoute = new Hono<{ Bindings: Env }>();
 const userId = DEFAULT_USER_ID;
@@ -48,9 +49,21 @@ mealsRoute.post("/", async (c) => {
   ]);
   if (!config) return c.json({ error: "Blueprint config not found" }, 500);
 
-  const updatedLog = await logMeal(db, userId, log, body);
+  await logMeal(db, userId, log.id, body);
+  const view = await buildDayView(db, userId, log, config);
 
-  return c.json({ log: updatedLog, remaining: computeRemaining(updatedLog, config) });
+  return c.json({ log: view, remaining: computeRemaining(view.targetCalories, toMacroTotals(view), config) });
+});
+
+mealsRoute.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb(c.env);
+  const [deleted] = await db
+    .delete(mealEntries)
+    .where(and(eq(mealEntries.id, id), eq(mealEntries.userId, userId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Not found" }, 404);
+  return c.json({ deleted: true });
 });
 
 mealsRoute.post("/parse-text", async (c) => {
@@ -92,7 +105,8 @@ mealsRoute.post("/suggest", async (c) => {
   ]);
   if (!config) return c.json({ error: "Blueprint config not found" }, 500);
 
-  const remaining = computeRemaining(log, config);
+  const view = await buildDayView(db, userId, log, config);
+  const remaining = computeRemaining(view.targetCalories, toMacroTotals(view), config);
   const foods = await db.select().from(foodLibrary);
 
   try {

@@ -1,14 +1,23 @@
-import { Droplet } from "lucide-react";
-import type { FoodItem } from "../types";
+import { Droplet, X } from "lucide-react";
+import type { FoodItem, HydrationEntry } from "../types";
 
 interface QuickLogConsoleProps {
   foods: FoodItem[];
+  hydrationEntries: HydrationEntry[];
   onQuickLogFood: (id: string) => void;
   onAddWater: (gallons: number) => void;
+  onDeleteHydration: (id: string) => void;
   busy: boolean;
 }
 
-export function QuickLogConsole({ foods, onQuickLogFood, onAddWater, busy }: QuickLogConsoleProps) {
+export function QuickLogConsole({
+  foods,
+  hydrationEntries,
+  onQuickLogFood,
+  onAddWater,
+  onDeleteHydration,
+  busy,
+}: QuickLogConsoleProps) {
   return (
     <div>
       <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -35,6 +44,23 @@ export function QuickLogConsole({ foods, onQuickLogFood, onAddWater, busy }: Qui
           <Droplet size={14} /> +0.25 Gal Water
         </button>
       </div>
+      {hydrationEntries.length > 0 && (
+        <ul className="mt-2 space-y-1 text-xs text-zinc-300">
+          {hydrationEntries.map((h) => (
+            <li key={h.id} className="flex items-center justify-between border-t border-zinc-800 pt-1.5">
+              <span>{h.gallons.toFixed(2)} gal</span>
+              <button
+                onClick={() => onDeleteHydration(h.id)}
+                disabled={busy}
+                className="text-zinc-500 hover:text-warning disabled:opacity-50"
+                aria-label="Delete hydration entry"
+              >
+                <X size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

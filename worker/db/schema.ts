@@ -44,6 +44,10 @@ export const weeklySchedule = sqliteTable("weekly_schedule", {
   distanceKmGoal: real("distance_km_goal"),
 });
 
+// Purely a day descriptor — NOT an accumulator. Calories/protein/fat/carbs/
+// hydration/distance are always computed by summing the itemized entry
+// tables below, so deleting or editing an entry can never leave a stale
+// running total behind.
 export const dailyLogs = sqliteTable("daily_logs", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
@@ -51,13 +55,6 @@ export const dailyLogs = sqliteTable("daily_logs", {
   dayType: text("day_type").notNull(),
   targetCalories: integer("target_calories").notNull(),
   currentWeightLbs: real("current_weight_lbs"),
-  caloriesConsumed: real("calories_consumed").notNull().default(0),
-  proteinGConsumed: real("protein_g_consumed").notNull().default(0),
-  fatGConsumed: real("fat_g_consumed").notNull().default(0),
-  carbsGConsumed: real("carbs_g_consumed").notNull().default(0),
-  fluidGallons: real("fluid_gallons").notNull().default(0),
-  distanceKmActual: real("distance_km_actual").notNull().default(0),
-  paceActual: text("pace_actual"),
   electrolytesReplenished: integer("electrolytes_replenished", { mode: "boolean" })
     .notNull()
     .default(false),
@@ -79,6 +76,23 @@ export const mealEntries = sqliteTable("meal_entries", {
   fatG: real("fat_g").notNull(),
   carbsG: real("carbs_g").notNull(),
   rawInput: text("raw_input"),
+});
+
+export const hydrationEntries = sqliteTable("hydration_entries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  date: text("date").notNull(),
+  loggedAt: integer("logged_at").notNull(),
+  gallons: real("gallons").notNull(),
+});
+
+export const runEntries = sqliteTable("run_entries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  date: text("date").notNull(),
+  loggedAt: integer("logged_at").notNull(),
+  distanceKm: real("distance_km").notNull(),
+  pace: text("pace"),
 });
 
 export const strengthMetrics = sqliteTable("strength_metrics", {

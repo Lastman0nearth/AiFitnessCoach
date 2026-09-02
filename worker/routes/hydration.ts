@@ -1,9 +1,9 @@
 import { Hono } from "hono";
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { dailyLogs } from "../db/schema";
+import { dailyLogs, hydrationEntries } from "../db/schema";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
-import { getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
+import { buildDayView, getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
 
 export const hydrationRoute = new Hono<{ Bindings: Env }>();
 const userId = DEFAULT_USER_ID;
@@ -25,20 +25,48 @@ hydrationRoute.post("/", async (c) => {
   ]);
   if (!config) return c.json({ error: "Blueprint config not found" }, 500);
 
-  const [updated] = await db
-    .update(dailyLogs)
-    .set({
-      fluidGallons: log.fluidGallons + (body.addGallons ?? 0),
-      electrolytesReplenished:
-        body.electrolytesReplenished ?? log.electrolytesReplenished,
-    })
-    .where(eq(dailyLogs.id, log.id))
-    .returning();
+  if (body.addGallons) {
+    await db.insert(hydrationEntries).values({
+      id: crypto.randomUUID(),
+      userId,
+      date,
+      loggedAt: Date.now(),
+      gallons: body.addGallons,
+    });
+  }
+  if (body.electrolytesReplenished !== undefined) {
+    await db
+      .update(dailyLogs)
+      .set({ electrolytesReplenished: body.electrolytesReplenished })
+      .where(eq(dailyLogs.id, log.id));
+  }
 
-  const fluidTargetMet = updated.fluidGallons >= config.fluidTargetGallons;
+  const view = await buildDayView(db, userId, log, config);
+  const fluidTargetMet = view.fluidGallons >= config.fluidTargetGallons;
   const needsElectrolyteReminder =
-    !updated.electrolytesReplenished &&
-    (log.amCardioDone || log.pmStrengthDone);
+    !view.electrolytesReplenished && (view.amCardioDone || view.pmStrengthDone);
 
-  return c.json({ log: updated, fluidTargetMet, needsElectrolyteReminder });
+  return c.json({ log: view, fluidTargetMet, needsElectrolyteReminder });
+});
+
+hydrationRoute.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb(c.env);
+  const [deleted] = await db
+    .delete(hydrationEntries)
+    .where(and(eq(hydrationEntries.id, id), eq(hydrationEntries.userId, userId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Not found" }, 404);
+  return c.json({ deleted: true });
+});
+
+hydrationRoute.get("/", async (c) => {
+  const date = c.req.query("date") ?? todayIso();
+  const db = getDb(c.env);
+  const entries = await db
+    .select()
+    .from(hydrationEntries)
+    .where(and(eq(hydrationEntries.userId, userId), eq(hydrationEntries.date, date)))
+    .orderBy(asc(hydrationEntries.loggedAt));
+  return c.json({ entries });
 });

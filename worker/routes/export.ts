@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { dailyLogs } from "../db/schema";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
+import { buildDayView, getConfig } from "../lib/dailyLog";
 
 export const exportRoute = new Hono<{ Bindings: Env }>();
 
@@ -16,6 +17,8 @@ const COLUMNS = [
   "carbsGConsumed",
   "currentWeightLbs",
   "fluidGallons",
+  "distanceKmActual",
+  "paceActual",
   "electrolytesReplenished",
   "amCardioDone",
   "pmStrengthDone",
@@ -29,15 +32,19 @@ function toCsvValue(value: unknown): string {
 
 exportRoute.get("/", async (c) => {
   const db = getDb(c.env);
-  const rows = await db
-    .select()
-    .from(dailyLogs)
-    .where(eq(dailyLogs.userId, DEFAULT_USER_ID))
-    .orderBy(asc(dailyLogs.date));
+  const userId = DEFAULT_USER_ID;
+
+  const [logs, config] = await Promise.all([
+    db.select().from(dailyLogs).where(eq(dailyLogs.userId, userId)).orderBy(asc(dailyLogs.date)),
+    getConfig(db, userId),
+  ]);
+  if (!config) return c.json({ error: "Blueprint config not found" }, 500);
+
+  const views = await Promise.all(logs.map((log) => buildDayView(db, userId, log, config)));
 
   const lines = [
     COLUMNS.join(","),
-    ...rows.map((row) => COLUMNS.map((col) => toCsvValue(row[col])).join(",")),
+    ...views.map((row) => COLUMNS.map((col) => toCsvValue(row[col])).join(",")),
   ];
 
   return new Response(lines.join("\n"), {

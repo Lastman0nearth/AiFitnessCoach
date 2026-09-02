@@ -3,8 +3,8 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { mealEntries } from "../db/schema";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
-import { computeRemaining } from "../lib/macros";
-import { getConfig, getOrCreateDailyLog, getSchedule, liveTargetCalories, todayIso } from "../lib/dailyLog";
+import { computeRemaining, toMacroTotals } from "../lib/macros";
+import { buildDayView, getConfig, getOrCreateDailyLog, getSchedule, todayIso } from "../lib/dailyLog";
 
 export const todayRoute = new Hono<{ Bindings: Env }>();
 
@@ -20,10 +20,7 @@ todayRoute.get("/", async (c) => {
   ]);
   if (!config) return c.json({ error: "Blueprint config not found" }, 500);
 
-  // Always reflect the live baseline (autoregulation may have changed it
-  // since this log row was created).
-  const liveTarget = liveTargetCalories(config, log.dayType);
-  const liveLog = { ...log, targetCalories: liveTarget };
+  const view = await buildDayView(db, userId, log, config);
 
   const meals = await db
     .select()
@@ -34,9 +31,9 @@ todayRoute.get("/", async (c) => {
   return c.json({
     date,
     schedule,
-    log: liveLog,
+    log: view,
     config,
-    remaining: computeRemaining(liveLog, config),
+    remaining: computeRemaining(view.targetCalories, toMacroTotals(view), config),
     meals,
   });
 });

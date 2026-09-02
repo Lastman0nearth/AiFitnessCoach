@@ -4,8 +4,8 @@ import { getDb } from "../db/client";
 import { foodLibrary } from "../db/schema";
 import { logMeal } from "../db/mealOps";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
-import { getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
-import { computeRemaining } from "../lib/macros";
+import { buildDayView, getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
+import { computeRemaining, toMacroTotals } from "../lib/macros";
 
 export const foodLibraryRoute = new Hono<{ Bindings: Env }>();
 const userId = DEFAULT_USER_ID;
@@ -89,7 +89,7 @@ foodLibraryRoute.post("/:id/quick-log", async (c) => {
   ]);
   if (!config) return c.json({ error: "Blueprint config not found" }, 500);
 
-  const updatedLog = await logMeal(db, userId, log, {
+  await logMeal(db, userId, log.id, {
     description: `${item.unitLabel} ${item.name}`,
     source: "quick_log",
     calories: item.calories,
@@ -97,6 +97,7 @@ foodLibraryRoute.post("/:id/quick-log", async (c) => {
     fatG: item.fatG,
     carbsG: item.carbsG,
   });
+  const view = await buildDayView(db, userId, log, config);
 
-  return c.json({ log: updatedLog, remaining: computeRemaining(updatedLog, config) });
+  return c.json({ log: view, remaining: computeRemaining(view.targetCalories, toMacroTotals(view), config) });
 });

@@ -66,3 +66,27 @@ strengthRoute.get("/latest", async (c) => {
 
   return c.json({ lifts: results });
 });
+
+strengthRoute.delete("/:id", async (c) => {
+  const id = c.req.param("id");
+  const db = getDb(c.env);
+  const [deleted] = await db
+    .delete(strengthMetrics)
+    .where(and(eq(strengthMetrics.id, id), eq(strengthMetrics.userId, userId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Not found" }, 404);
+  return c.json({ deleted: true });
+});
+
+strengthRoute.get("/:lift/history", async (c) => {
+  const lift = c.req.param("lift") as Lift;
+  if (!LIFTS.includes(lift)) return c.json({ error: `lift must be one of ${LIFTS.join(", ")}` }, 400);
+  const db = getDb(c.env);
+  const entries = await db
+    .select()
+    .from(strengthMetrics)
+    .where(and(eq(strengthMetrics.userId, userId), eq(strengthMetrics.lift, lift)))
+    .orderBy(desc(strengthMetrics.date))
+    .limit(10);
+  return c.json({ entries });
+});

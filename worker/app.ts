@@ -13,6 +13,7 @@ import { exportRoute } from "./routes/export";
 import { runsRoute } from "./routes/runs";
 import { weightRoute } from "./routes/weight";
 import { workoutsRoute } from "./routes/workouts";
+import { historyRoute } from "./routes/history";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -41,6 +42,7 @@ app.route("/api/export.csv", exportRoute);
 app.route("/api/runs", runsRoute);
 app.route("/api/weight", weightRoute);
 app.route("/api/workouts", workoutsRoute);
+app.route("/api/history", historyRoute);
 
 app.onError((err, c) => {
   console.error(err);
