@@ -10,7 +10,7 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "ai-fitness-coach-db"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "6d4b6c45-e5d6-4daa-bb7d-9b6030728a84"
 migrations_dir = "migrations"
 
 # Set the real secret with: wrangler secret put GEMINI_API_KEY
