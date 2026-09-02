@@ -100,6 +100,18 @@ export interface FoodItem {
 
 export type Lift = "bench" | "row" | "deadlift" | "squat" | "ohp";
 
+export interface WorkoutEntry {
+  id: string;
+  date: string;
+  loggedAt: number;
+  equipmentType: "weights" | "resistance" | "kettlebell";
+  exerciseName: string;
+  weightLbs: number | null;
+  sets: number | null;
+  reps: number | null;
+  notes: string | null;
+}
+
 export interface WeeklyVolumeRow {
   date: string;
   label: string;

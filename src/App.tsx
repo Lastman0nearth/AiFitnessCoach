@@ -8,6 +8,7 @@ import type {
   TodayResponse,
   UserProfile,
   WeeklyVolumeRow,
+  WorkoutEntry,
 } from "./types";
 import { RadialGauge } from "./components/RadialGauge";
 import { StatusHeader } from "./components/StatusHeader";
@@ -17,6 +18,7 @@ import { StrengthMonitor } from "./components/StrengthMonitor";
 import { WeeklyVolumeMatrix } from "./components/WeeklyVolumeMatrix";
 import { AlertBanner } from "./components/AlertBanner";
 import { MealLogger } from "./components/MealLogger";
+import { ActivityLogger } from "./components/ActivityLogger";
 
 interface LiftStatus {
   lift: string;
@@ -36,19 +38,21 @@ export default function App() {
   const [volumeRows, setVolumeRows] = useState<WeeklyVolumeRow[]>([]);
   const [weightHistory, setWeightHistory] = useState<{ date: string; weightLbs: number }[]>([]);
   const [lifts, setLifts] = useState<LiftStatus[]>([]);
+  const [todaysWorkouts, setTodaysWorkouts] = useState<WorkoutEntry[]>([]);
   const [weightInput, setWeightInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     try {
-      const [t, bp, fl, wv, wh, sl] = await Promise.all([
+      const [t, bp, fl, wv, wh, sl, wk] = await Promise.all([
         api.today() as Promise<TodayResponse>,
         api.blueprint() as Promise<{ config: BlueprintConfig; schedule: ScheduleEntry[]; user: UserProfile }>,
         api.foodLibrary() as Promise<{ items: FoodItem[] }>,
         api.weeklyVolume() as Promise<{ rows: WeeklyVolumeRow[] }>,
         api.weightHistory() as Promise<{ history: { date: string; weightLbs: number }[] }>,
         api.strengthLatest() as Promise<{ lifts: LiftStatus[] }>,
+        api.todaysWorkouts() as Promise<{ entries: WorkoutEntry[] }>,
       ]);
       setToday(t);
       setUser(bp.user);
@@ -56,6 +60,7 @@ export default function App() {
       setVolumeRows(wv.rows);
       setWeightHistory(wh.history);
       setLifts(sl.lifts);
+      setTodaysWorkouts(wk.entries);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
@@ -227,6 +232,10 @@ export default function App() {
             </ul>
           </div>
         )}
+
+        <div className="rounded-2xl bg-charcoal p-4">
+          <ActivityLogger todaysWorkouts={todaysWorkouts} onLogged={loadAll} />
+        </div>
 
         <div className="rounded-2xl bg-charcoal p-4">
           <StrengthMonitor lifts={lifts} />

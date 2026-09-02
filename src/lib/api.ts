@@ -43,4 +43,14 @@ export const api = {
 
   logWeight: (weightLbs: number, date?: string) =>
     request("/weight", { method: "POST", body: JSON.stringify({ weightLbs, date }) }),
+
+  logWorkout: (body: {
+    equipmentType: "weights" | "resistance" | "kettlebell";
+    exerciseName: string;
+    weightLbs?: number;
+    sets?: number;
+    reps?: number;
+    date?: string;
+  }) => request("/workouts", { method: "POST", body: JSON.stringify(body) }),
+  todaysWorkouts: (date?: string) => request(`/workouts${date ? `?date=${date}` : ""}`),
 };

@@ -115,6 +115,7 @@ values are best-effort placeholders where the blueprint doc only specified prote
 | `POST /api/food-library/:id/quick-log` | One-tap log of a preset item |
 | `POST /api/runs`, `GET /api/runs/weekly-volume` | Planned vs. actual running volume |
 | `POST /api/weight`, `GET /api/weight/history` | Weight trend tracking |
+| `POST /api/workouts`, `GET /api/workouts` | General activity log — weights, resistance bands, kettlebells |
 | `GET /api/export.csv` | Flattened daily history as CSV |
 
 ## Roadmap (not in this build)

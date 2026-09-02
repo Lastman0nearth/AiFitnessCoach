@@ -12,6 +12,7 @@ import { foodLibraryRoute } from "./routes/foodLibrary";
 import { exportRoute } from "./routes/export";
 import { runsRoute } from "./routes/runs";
 import { weightRoute } from "./routes/weight";
+import { workoutsRoute } from "./routes/workouts";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -39,6 +40,7 @@ app.route("/api/food-library", foodLibraryRoute);
 app.route("/api/export.csv", exportRoute);
 app.route("/api/runs", runsRoute);
 app.route("/api/weight", weightRoute);
+app.route("/api/workouts", workoutsRoute);
 
 app.onError((err, c) => {
   console.error(err);

@@ -89,6 +89,21 @@ export const strengthMetrics = sqliteTable("strength_metrics", {
   topWeightLbs: real("top_weight_lbs").notNull(),
 });
 
+// General activity log (kettlebells, resistance bands, accessory lifts,
+// anything outside the 5 tracked PRs in strength_metrics above).
+export const workoutEntries = sqliteTable("workout_entries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  date: text("date").notNull(),
+  loggedAt: integer("logged_at").notNull(),
+  equipmentType: text("equipment_type").notNull(), // weights | resistance | kettlebell
+  exerciseName: text("exercise_name").notNull(),
+  weightLbs: real("weight_lbs"),
+  sets: integer("sets"),
+  reps: integer("reps"),
+  notes: text("notes"),
+});
+
 export const foodLibrary = sqliteTable("food_library", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
