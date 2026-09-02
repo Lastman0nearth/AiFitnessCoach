@@ -13,5 +13,6 @@ database_name = "ai-fitness-coach-db"
 database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
 migrations_dir = "migrations"
 
-# Set the real secret with: wrangler secret put ANTHROPIC_API_KEY
+# Set the real secret with: wrangler secret put GEMINI_API_KEY
+# Get a free key (no credit card) at https://aistudio.google.com/apikey
 # For local dev, put it in .dev.vars instead (see .dev.vars.example)

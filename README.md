@@ -9,11 +9,13 @@ fluid/electrolyte sync — built as a lean, entirely free-tier Cloudflare app.
 - **Frontend:** Vite + React + TypeScript + Tailwind CSS v4, mobile-first PWA
 - **API:** Hono, running on a Cloudflare Worker
 - **Database:** Cloudflare D1 (SQLite), via Drizzle ORM — persists in production, unlike a local file
-- **AI:** Anthropic API, called server-side only — a cheap/fast model for typed or spoken meal
-  descriptions, a stronger vision-capable model only when a photo is involved
+- **AI:** Gemini API (Google AI Studio), called server-side only — `gemini-2.5-flash-lite` for
+  typed or spoken meal descriptions, `gemini-2.5-flash` only when a photo is involved
 - **Hosting:** Cloudflare Workers + Static Assets (one project, one `wrangler deploy`)
 
-Everything runs on Cloudflare's free tier. No other paid services required.
+Everything runs on genuinely free tiers: Cloudflare Workers/D1 need no credit card, and
+Google AI Studio's Gemini API (Flash models) is free with no credit card either — unlike
+the Anthropic/OpenAI APIs, which require a funded billing account before they issue a key.
 
 ## One-time setup
 
@@ -37,12 +39,18 @@ Everything runs on Cloudflare's free tier. No other paid services required.
    ```
    (Use `npm run db:migrate:local` for local dev — this uses Miniflare's local D1 emulation
    and needs no Cloudflare account.)
-5. Set your Anthropic API key as a Worker secret (for production):
+5. Get a free Gemini API key (no credit card) from
+   [aistudio.google.com/apikey](https://aistudio.google.com/apikey), then set it as a
+   Worker secret (for production):
    ```
-   npx wrangler secret put ANTHROPIC_API_KEY
+   npx wrangler secret put GEMINI_API_KEY
    ```
    For local dev, copy `.dev.vars.example` to `.dev.vars` and fill in the real key —
    `.dev.vars` is gitignored and never committed.
+
+   Note: on the free tier, Google may use your prompts/responses to improve their
+   products. If that matters for your data, use a paid Gemini tier instead — same code,
+   just billing enabled on the Google Cloud project behind your API key.
 
 ## Local development
 
@@ -97,8 +105,8 @@ values are best-effort placeholders where the blueprint doc only specified prote
 | `GET /api/today` | Today's schedule, log, remaining macro budget, meals |
 | `GET /api/blueprint` | Config + weekly schedule + user profile |
 | `POST /api/meals` | Log a meal with known exact macros |
-| `POST /api/meals/parse-text` | Claude parses a typed/spoken meal description |
-| `POST /api/meals/parse-photo` | Claude vision reads a nutrition label or plate photo |
+| `POST /api/meals/parse-text` | Gemini parses a typed/spoken meal description |
+| `POST /api/meals/parse-photo` | Gemini vision reads a nutrition label or plate photo |
 | `POST /api/meals/suggest` | Meal Prep Solver — a recipe that fits the remaining budget |
 | `POST /api/strength` | Log a lift; runs the 10% Autoregulatory Strength Rule check |
 | `GET /api/strength/latest` | Latest top weight + warning flag per lift |
@@ -112,6 +120,6 @@ values are best-effort placeholders where the blueprint doc only specified prote
 ## Roadmap (not in this build)
 
 - **End-of-61-day AI Expert Panel**: when `target_date` is reached, lock the dashboard,
-  run an onboarding questionnaire, and call Claude with a multi-persona prompt (Sports
+  run an onboarding questionnaire, and call Gemini with a multi-persona prompt (Sports
   Scientist / Track Coach / Orthopedic Specialist) to collaboratively write the next
   phase's blueprint.

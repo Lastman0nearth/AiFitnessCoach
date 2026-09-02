@@ -4,7 +4,7 @@ import { logMeal } from "../db/mealOps";
 import { DEFAULT_USER_ID } from "../lib/blueprint";
 import { getConfig, getOrCreateDailyLog, todayIso } from "../lib/dailyLog";
 import { computeRemaining } from "../lib/macros";
-import { photoParseLabel, suggestMeal, textParseMeal } from "../lib/anthropic";
+import { photoParseLabel, suggestMeal, textParseMeal } from "../lib/gemini";
 import { foodLibrary } from "../db/schema";
 
 export const mealsRoute = new Hono<{ Bindings: Env }>();

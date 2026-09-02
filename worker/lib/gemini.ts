@@ -1,57 +1,51 @@
-// Smart model routing: cheap/fast model for typed or spoken text, the
-// stronger vision-capable model only when a photo is actually involved.
-const TEXT_MODEL = "claude-haiku-4-5-20251001";
-const VISION_MODEL = "claude-sonnet-5";
-const ANTHROPIC_VERSION = "2023-06-01";
+// Google AI Studio's Gemini API has a genuine free tier (no credit card,
+// ever) for Flash-class models — that's why this app uses Gemini instead of
+// a metered API. A cheap/fast model handles typed or spoken text, the
+// stronger Flash model only when a photo is involved.
+const TEXT_MODEL = "gemini-2.5-flash-lite";
+const VISION_MODEL = "gemini-2.5-flash";
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
-interface ToolCallOptions {
+interface GeminiPart {
+  text?: string;
+  inline_data?: { mime_type: string; data: string };
+}
+
+interface StructuredCallOptions {
   apiKey: string;
   model: string;
   system: string;
-  messages: Array<{ role: "user"; content: unknown }>;
-  toolName: string;
-  toolDescription: string;
-  inputSchema: Record<string, unknown>;
-  maxTokens?: number;
+  parts: GeminiPart[];
+  responseSchema: Record<string, unknown>;
 }
 
-async function callClaudeTool<T>(opts: ToolCallOptions): Promise<T> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+async function callGeminiStructured<T>(opts: StructuredCallOptions): Promise<T> {
+  const res = await fetch(`${API_BASE}/${opts.model}:generateContent?key=${opts.apiKey}`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": opts.apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-    },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      model: opts.model,
-      max_tokens: opts.maxTokens ?? 1024,
-      system: opts.system,
-      messages: opts.messages,
-      tools: [
-        {
-          name: opts.toolName,
-          description: opts.toolDescription,
-          input_schema: opts.inputSchema,
-        },
-      ],
-      tool_choice: { type: "tool", name: opts.toolName },
+      system_instruction: { parts: [{ text: opts.system }] },
+      contents: [{ role: "user", parts: opts.parts }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: opts.responseSchema,
+      },
     }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Anthropic API error (${res.status}): ${body}`);
+    throw new Error(`Gemini API error (${res.status}): ${body}`);
   }
 
   const data = (await res.json()) as {
-    content: Array<{ type: string; input?: T }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
   };
-  const toolUse = data.content.find((block) => block.type === "tool_use");
-  if (!toolUse?.input) {
-    throw new Error("Anthropic response did not include the expected tool_use block");
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error("Gemini response did not include the expected content");
   }
-  return toolUse.input;
+  return JSON.parse(text) as T;
 }
 
 export interface ParsedMacros {
@@ -89,18 +83,13 @@ const COACH_SYSTEM_PROMPT = `You are the macro-calculation engine for an elite a
 Be exact, not generous. If the user gives precise weights/volumes and a known product, calculate precisely.
 If a portion is vague ("a handful", "some rice"), set confidence to "low" and note the assumption you made in "assumptions" — never silently invent a large or unusual portion.`;
 
-export async function textParseMeal(
-  env: Env,
-  description: string,
-): Promise<ParsedMacros> {
-  return callClaudeTool<ParsedMacros>({
-    apiKey: env.ANTHROPIC_API_KEY,
+export async function textParseMeal(env: Env, description: string): Promise<ParsedMacros> {
+  return callGeminiStructured<ParsedMacros>({
+    apiKey: env.GEMINI_API_KEY,
     model: TEXT_MODEL,
     system: COACH_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: description }],
-    toolName: "log_meal_macros",
-    toolDescription: "Record the calculated macro breakdown for a described meal",
-    inputSchema: MACRO_SCHEMA,
+    parts: [{ text: description }],
+    responseSchema: MACRO_SCHEMA,
   });
 }
 
@@ -109,29 +98,15 @@ export async function photoParseLabel(
   imageBase64: string,
   mediaType: string,
 ): Promise<ParsedMacros> {
-  return callClaudeTool<ParsedMacros>({
-    apiKey: env.ANTHROPIC_API_KEY,
+  return callGeminiStructured<ParsedMacros>({
+    apiKey: env.GEMINI_API_KEY,
     model: VISION_MODEL,
     system: `${COACH_SYSTEM_PROMPT}\nYou are reading a photo of a nutrition facts label or a plated meal. Read exact printed figures when a label is visible (use the "per serving" row, not per container, unless told otherwise). If it's a plate photo with no label, set confidence "low" and describe your visual estimate in "assumptions".`,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: imageBase64 },
-          },
-          {
-            type: "text",
-            text: "Extract the macro breakdown from this photo.",
-          },
-        ],
-      },
+    parts: [
+      { inline_data: { mime_type: mediaType, data: imageBase64 } },
+      { text: "Extract the macro breakdown from this photo." },
     ],
-    toolName: "log_meal_macros",
-    toolDescription: "Record the calculated macro breakdown read from the photo",
-    inputSchema: MACRO_SCHEMA,
-    maxTokens: 1024,
+    responseSchema: MACRO_SCHEMA,
   });
 }
 
@@ -186,15 +161,12 @@ Construct ONE exact recipe, using only these approved soy-free plant alternative
 ${params.approvedFoods.join(", ")}
 Give exact quantities (oz/cups/scoops), not vague amounts.`;
 
-  return callClaudeTool<MealSuggestion>({
-    apiKey: env.ANTHROPIC_API_KEY,
+  return callGeminiStructured<MealSuggestion>({
+    apiKey: env.GEMINI_API_KEY,
     model: TEXT_MODEL,
     system:
       "You are a precise sports nutrition meal-prep solver. Only use the foods given. Never guess portions — calculate exact quantities that hit the target macros.",
-    messages: [{ role: "user", content: prompt }],
-    toolName: "propose_recipe",
-    toolDescription: "Propose a recipe that fits the remaining macro budget",
-    inputSchema: SUGGESTION_SCHEMA,
-    maxTokens: 1024,
+    parts: [{ text: prompt }],
+    responseSchema: SUGGESTION_SCHEMA,
   });
 }
