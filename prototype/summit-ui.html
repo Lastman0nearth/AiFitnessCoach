@@ -1,0 +1,293 @@
+<title>Summit Streak Prototypes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Layout: a row of phone frames on a trail-map ground; each frame is one live screen. Single cel-shaded world, light by choice. */
+:root{
+  --ink:#1c2630;        /* cel outline */
+  --sky:#bfe6f2; --pine:#2f8f5b; --pine-d:#1f6b42; --river:#3ab0d9;
+  --rock:#9aa3ad; --rock-d:#6c7681; --snow:#f4fbff;
+  --ember:#fc5200;      /* Strava-orange energy */
+  --ember-d:#c43f00; --gold:#ffc83d; --gold-d:#d99a00;
+  --paper:#fffaf2; --muted:#5d6b78; --ground:#e9f1e4;
+  --display:"Lilita One","Arial Rounded MT Bold",system-ui,sans-serif;
+  --body:"Nunito",ui-rounded,system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-weight:600;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+header{max-width:1280px;margin:0 auto 22px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,5vw,46px);margin:0;letter-spacing:.5px;text-wrap:balance}
+h1 span{color:var(--ember)}
+header p{margin:4px 0 0;max-width:60ch;color:var(--muted)}
+.note{background:var(--paper);border:2.5px solid var(--ink);border-radius:12px;padding:8px 12px;font-size:13px;max-width:44ch;box-shadow:3px 3px 0 var(--ink)}
+.row{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:28px;justify-content:center}
+figure{margin:0;display:flex;flex-direction:column;gap:10px;align-items:center}
+figcaption{font-family:var(--display);font-size:18px;letter-spacing:.4px}
+figcaption small{display:block;font-family:var(--body);font-size:12px;color:var(--muted);text-align:center;font-weight:600;max-width:30ch}
+.phone{width:300px;max-width:100%;height:620px;border:4px solid var(--ink);border-radius:34px;overflow:hidden;position:relative;background:var(--paper);box-shadow:6px 6px 0 var(--ink);display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;background:var(--paper);border-bottom:3px solid var(--ink);font-weight:900;font-size:13px;gap:6px;position:relative;z-index:3}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border:2.5px solid var(--ink);border-radius:20px;background:#fff;font-variant-numeric:tabular-nums}
+.chip.fire{background:var(--ember);color:#fff}
+.chip.coin{background:var(--gold)}
+.grade{font-family:var(--display);font-size:20px;line-height:1;padding:2px 9px;border:2.5px solid var(--ink);border-radius:10px;background:var(--ink);color:var(--gold)}
+.btn{font:900 15px var(--body);border:3px solid var(--ink);border-radius:14px;padding:11px 14px;background:var(--ember);color:#fff;box-shadow:0 4px 0 var(--ink);cursor:pointer;width:100%;letter-spacing:.3px}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible,.task:focus-visible,.tab:focus-visible,.cal button:focus-visible{outline:3px solid var(--river);outline-offset:2px}
+/* onboarding */
+.pad{padding:16px;display:flex;flex-direction:column;gap:12px;overflow:auto;flex:1}
+.lbl{font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);font-weight:900}
+input[type=text]{font:800 15px var(--body);border:3px solid var(--ink);border-radius:12px;padding:9px 11px;width:100%;background:#fff;color:var(--ink)}
+.lens{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lens button{font:900 14px var(--body);border:3px solid var(--ink);border-radius:12px;padding:8px 0;background:#fff;cursor:pointer;color:var(--ink)}
+.lens button[aria-pressed=true]{background:var(--river);color:#fff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.tpl{display:flex;flex-direction:column;gap:6px}
+.tpl div{display:flex;gap:8px;align-items:center;border:2.5px solid var(--ink);border-radius:10px;padding:7px 10px;background:#fff;font-size:13px}
+.tpl i{font-style:normal;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:var(--sky);border:2px solid var(--ink);font-size:12px}
+/* map */
+.map{flex:1;overflow-y:auto;position:relative;scrollbar-width:none}
+.map svg{display:block;width:100%}
+.node{cursor:pointer}
+@keyframes bob{50%{transform:translateY(-5px)}}
+.hero{animation:bob 1.4s ease-in-out infinite}
+.nav{display:flex;justify-content:space-around;border-top:3px solid var(--ink);background:var(--paper);padding:8px 0 10px;font-size:11px;font-weight:900}
+.nav span{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted)}
+.nav span.on{color:var(--ember)}
+.nav b{font-size:18px;line-height:1}
+/* today */
+.clock{font-family:var(--display);font-size:30px;letter-spacing:1px;font-variant-numeric:tabular-nums;line-height:1}
+.coach{display:flex;gap:8px;align-items:flex-end}
+.bubble{background:#fff;border:3px solid var(--ink);border-radius:14px 14px 14px 4px;padding:8px 10px;font-size:13px;font-weight:800;flex:1;min-width:0;min-height:52px}
+.meter{height:16px;border:3px solid var(--ink);border-radius:10px;background:#fff;overflow:hidden}
+.meter div{height:100%;background:repeating-linear-gradient(-45deg,var(--ember) 0 8px,#ff7a33 8px 16px);transition:width .35s cubic-bezier(.3,1.6,.5,1)}
+.task{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:800 14px var(--body);color:var(--ink);background:#fff;border:3px solid var(--ink);border-radius:12px;padding:9px 10px;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.task .box{width:24px;height:24px;flex:none;border:3px solid var(--ink);border-radius:8px;display:grid;place-items:center;font-size:14px;color:#fff;transition:background .15s}
+.task.done{background:#e6f7ec}
+.task.done .box{background:var(--pine)}
+.task.done .t{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.task .c{margin-left:auto;font-size:12px;color:var(--gold-d);font-weight:900}
+.task[disabled]{cursor:not-allowed;box-shadow:none;opacity:.9}
+@keyframes pop{40%{transform:scale(1.06)}}
+.task.pop{animation:pop .25s}
+.insight{border:3px dashed var(--ink);border-radius:12px;padding:8px 10px;font-size:12.5px;background:var(--sky)}
+.insight.warn{background:#ffe7d6}
+/* power up */
+.power{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:radial-gradient(circle,#ffde7a 0,var(--ember) 55%,var(--ember-d) 100%);text-align:center;color:#fff}
+.power h2{font-family:var(--display);font-weight:400;font-size:34px;margin:6px 0 0;-webkit-text-stroke:2px var(--ink);text-shadow:3px 3px 0 var(--ink)}
+.power p{margin:4px 18px 14px;font-weight:900}
+.power .btn{background:var(--gold);color:var(--ink);width:auto;padding:10px 20px}
+.rays{position:absolute;inset:-50%;background:repeating-conic-gradient(rgba(255,255,255,.22) 0 10deg,transparent 10deg 20deg);animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(1turn)}}
+@keyframes zap{0%{transform:scale(.2) rotate(-20deg)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.power .in{position:relative;animation:zap .5s cubic-bezier(.3,1.6,.5,1)}
+/* sidebar */
+.tabs{display:flex;border-bottom:3px solid var(--ink)}
+.tab{flex:1;font:900 12px var(--body);padding:10px 0;border:0;border-right:3px solid var(--ink);background:#fff;cursor:pointer;color:var(--ink)}
+.tab:last-child{border-right:0}
+.tab[aria-selected=true]{background:var(--ink);color:var(--gold)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal span{font-size:10px;text-align:center;color:var(--muted);font-weight:900}
+.cal button{aspect-ratio:1;max-width:100%;border:2.5px solid var(--ink);border-radius:8px;font:900 11px var(--display);cursor:pointer;background:#fff;color:var(--ink);padding:0;line-height:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.cal button small{font:900 8px var(--body);opacity:.75}
+.cal .p{background:var(--ember);color:#fff}
+.cal .ok{background:var(--gold)}
+.cal .low{background:#f1c9c9}
+.cal .today{outline:3px solid var(--river);outline-offset:1px}
+.cal .sel{box-shadow:inset 0 0 0 2px #fff, 0 0 0 2px var(--ink)}
+.cal button:disabled{background:transparent;border-style:dashed;color:var(--rock);cursor:default}
+.lock{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:900;background:var(--ink);color:var(--gold);padding:6px 10px;border-radius:10px}
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.badge{border:3px solid var(--ink);border-radius:14px;padding:8px 4px;text-align:center;font-size:11px;font-weight:900;background:#fff}
+.badge b{display:block;font-size:24px;line-height:1.1}
+.badge.off{opacity:.38;filter:grayscale(1)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:110px;border-bottom:3px solid var(--ink);padding-top:6px}
+.bars i{flex:1;border:2px solid var(--ink);border-bottom:0;border-radius:4px 4px 0 0;background:var(--gold)}
+.bars i.p{background:var(--ember)}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat div{border:3px solid var(--ink);border-radius:12px;padding:8px;background:#fff}
+.stat b{font-family:var(--display);font-size:24px;display:block;font-weight:400}
+.scale{display:flex;flex-wrap:wrap;gap:4px}
+.scale em{font-style:normal;font:12px var(--display);border:2px solid var(--ink);border-radius:6px;padding:2px 5px;background:#fff}
+.mute{position:absolute;top:0;right:0;border:0;background:none;font-size:18px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header>
+  <div>
+    <h1>Summit <span>Streak</span></h1>
+    <p>Four live UI prototypes for a 30-day challenge game. Tap tasks on the <b>Today</b> phone to earn coins, change your grade and hear the coach. Finish every task to see the power-up.</p>
+  </div>
+  <div class="note"><b>Placeholder tasks.</b> Your 30-day challenge file didn't come through, so these six tasks come from your existing blueprint. Send the file and I'll swap them in.</div>
+</header>
+
+<div class="row">
+  <figure>
+    <div class="phone">
+      <div class="bar"><span>New challenge</span><span class="chip">Step 2 / 3</span></div>
+      <div class="pad">
+        <div class="coach"><svg width="56" height="56" class="coachsvg"></svg><div class="bubble">Hey! I'm Ridge. Let's build the daily list you'll repeat until the summit.</div></div>
+        <label class="lbl" for="cname">Challenge name</label>
+        <input id="cname" type="text" value="30-Day Recomp Climb">
+        <span class="lbl">Length</span>
+        <div class="lens" id="lens"><button>7</button><button>14</button><button aria-pressed="true">30</button><button>60</button></div>
+        <span class="lbl">Daily checklist template</span>
+        <div class="tpl" id="tpl"></div>
+        <button class="btn">Start the climb ▸</button>
+      </div>
+    </div>
+    <figcaption>1 · Create challenge<small>First launch. Name, length and a checklist that repeats every day.</small></figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone">
+      <div class="bar"><span class="chip fire">🔥 4</span><span class="chip coin">● 1,240</span><span class="grade">S+</span></div>
+      <div class="map" id="map"></div>
+      <div class="nav"><span class="on"><b>⛰</b>Map</span><span><b>✓</b>Today</span><span><b>☰</b>Journal</span><span><b>☺</b>Profile</span></div>
+    </div>
+    <figcaption>2 · Trail map<small>Forest → river → foothills → summit. One space per perfect day.</small></figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone" id="today">
+      <div class="bar"><span class="chip fire" id="tStreak">🔥 4</span><span class="chip coin" id="tCoins">● 0</span><span class="grade" id="tGrade">F</span></div>
+      <div class="pad">
+        <div style="display:flex;justify-content:space-between;align-items:end;position:relative">
+          <div><div class="lbl" id="tDate">Day 8 of 30</div><div class="clock" id="clock">--:--</div></div>
+          <button class="mute" id="mute" aria-label="Toggle sound">🔊</button>
+        </div>
+        <div class="coach"><svg width="62" height="62" class="coachsvg" id="ridge"></svg><div class="bubble" id="say">Morning! Six tasks between you and the next space.</div></div>
+        <div class="meter"><div id="meter" style="width:0"></div></div>
+        <div class="tpl" id="list" style="gap:8px"></div>
+        <div class="insight" id="ins">🧘 Five days of meditation in a row. Your calmest streak yet.</div>
+      </div>
+    </div>
+    <figcaption>3 · Today<small>Live clock, checklist, coins and a coach who reacts to every check.</small></figcaption>
+  </figure>
+
+  <figure>
+    <div class="phone">
+      <div class="bar"><span>Journal</span><span class="chip">Round 1</span></div>
+      <div class="tabs" role="tablist"><button class="tab" role="tab" data-t="ms">Milestones</button><button class="tab" role="tab" data-t="pr">Progress</button><button class="tab" role="tab" data-t="ca" aria-selected="true">Calendar</button></div>
+      <div class="pad" id="side"></div>
+    </div>
+    <figcaption>4 · Sidebar tabs<small>Past days are archived and locked once midnight passes.</small></figcaption>
+  </figure>
+</div>
+
+<script>
+const TASKS=[["🏃","Morning run"],["🥩","Hit 190 g protein"],["💧","Drink 2 gal water"],["🏋","Strength session"],["🧘","Meditate 10 min"],["🌙","Lights out by 10:30"]];
+const COIN=10, DAY=8, LEN=30;
+// past days: % complete per day 1..7 (sample history)
+const HIST=[100,83,100,100,100,100,67];
+const $=s=>document.querySelector(s);
+
+function grade(p,streak){if(p>=100)return streak?"S+":"S";const t=[[95,"A+"],[90,"A"],[85,"A-"],[80,"B+"],[75,"B"],[70,"B-"],[65,"C+"],[60,"C"],[55,"C-"],[45,"D+"],[30,"D"],[1,"D-"]];for(const[m,g]of t)if(p>=m)return g;return"F"}
+
+// ---- coach character: original cel-shaded mountain goat ----
+function goat(svg,mood){svg.setAttribute("viewBox","0 0 64 64");svg.innerHTML=`
+<g stroke="#1c2630" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+<path d="M18 18 C10 8 6 14 12 22" fill="#e9d9b8"/><path d="M46 18 C54 8 58 14 52 22" fill="#e9d9b8"/>
+<ellipse cx="32" cy="36" rx="20" ry="19" fill="#fffaf2"/>
+<path d="M14 40 a20 19 0 0 0 36 0 a22 14 0 0 1 -36 0z" fill="#dfe6ea" stroke="none"/>
+<ellipse cx="32" cy="36" rx="20" ry="19" fill="none"/>
+<path d="M22 13 L32 20 L42 13 L40 22 L24 22z" fill="${mood>1?'#fc5200':'#3ab0d9'}"/>
+${mood>1?'<path d="M21 33 q3 -4 6 0 M37 33 q3 -4 6 0" fill="none"/>':'<circle cx="24" cy="33" r="2.6" fill="#1c2630" stroke="none"/><circle cx="40" cy="33" r="2.6" fill="#1c2630" stroke="none"/>'}
+<path d="${mood>0?'M25 42 q7 7 14 0':'M26 44 q6 -3 12 0'}" fill="${mood>0?'#c43f00':'none'}"/>
+<path d="M27 52 q5 8 10 0" fill="#fffaf2"/></g>`}
+document.querySelectorAll(".coachsvg").forEach(s=>goat(s,1));
+
+// ---- onboarding ----
+$("#tpl").innerHTML=TASKS.map(([i,t])=>`<div><i>${i}</i>${t}</div>`).join("")+`<div style="border-style:dashed;color:var(--muted)"><i>＋</i>Add a task</div>`;
+$("#lens").onclick=e=>{if(e.target.tagName!="BUTTON")return;[...e.currentTarget.children].forEach(b=>b.setAttribute("aria-pressed",b==e.target))};
+
+// ---- map ----
+(function(){const W=300,step=62,H=LEN*step+220,pts=[];
+ for(let d=1;d<=LEN;d++){const y=H-90-(d-1)*step;pts.push([150+Math.sin(d*.9)*80,y])}
+ const biome=y=>{const f=1-y/H;return f<.3?"forest":f<.5?"river":f<.78?"hill":"peak"};
+ let g=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+ <defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd3ea"/><stop offset=".3" stop-color="#bfe6f2"/><stop offset=".55" stop-color="#cfe9c5"/><stop offset="1" stop-color="#9fd39a"/></linearGradient></defs>
+ <rect width="${W}" height="${H}" fill="url(#sk)"/>
+ <g stroke="#1c2630" stroke-width="3" stroke-linejoin="round">
+ <path d="M-10 ${H*.36} L60 ${H*.12} L110 ${H*.2} L170 ${H*.02+40} L230 ${H*.17} L310 ${H*.3} L310 ${H*.42} L-10 ${H*.42}z" fill="#9aa3ad"/>
+ <path d="M170 ${H*.02+40} L230 ${H*.17} L200 ${H*.14} L185 ${H*.2}z" fill="#6c7681"/>
+ <path d="M150 ${H*.02+64} L170 ${H*.02+40} L192 ${H*.02+68} L178 ${H*.02+62} L168 ${H*.02+74} L160 ${H*.02+64}z" fill="#f4fbff"/>
+ <path d="M-10 ${H*.58} C80 ${H*.54} 120 ${H*.64} 200 ${H*.6} S310 ${H*.56} 310 ${H*.56} L310 ${H*.62} C230 ${H*.64} 180 ${H*.7} 90 ${H*.65} S-10 ${H*.64} -10 ${H*.64}z" fill="#3ab0d9"/>
+ </g>`;
+ // trees & rocks
+ let seed=7;const r=()=>(seed=(seed*9301+49297)%233280)/233280;
+ for(let i=0;i<46;i++){const y=H*.42+r()*H*.56,x=r()<.5?r()*70:230+r()*70;
+   if(biome(y)=="forest"||biome(y)=="hill"&&r()<.4) g+=`<g stroke="#1c2630" stroke-width="2.5" stroke-linejoin="round"><path d="M${x} ${y-26} L${x+13} ${y} L${x-13} ${y}z" fill="#2f8f5b"/><path d="M${x} ${y-26} L${x+13} ${y} L${x+3} ${y}z" fill="#1f6b42" stroke="none"/><rect x="${x-3}" y="${y}" width="6" height="7" fill="#8a5a3c"/></g>`;
+   else g+=`<path d="M${x-10} ${y} L${x-4} ${y-10} L${x+8} ${y-8} L${x+12} ${y}z" fill="#9aa3ad" stroke="#1c2630" stroke-width="2.5"/>`}
+ // path
+ g+=`<polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#1c2630" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+ <polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#fffaf2" stroke-width="8" stroke-dasharray="2 12" stroke-linecap="round"/>`;
+ // nodes: you move up only on perfect days → position = # of perfect days
+ const perfect=HIST.filter(p=>p==100).length; // 5
+ pts.forEach(([x,y],i)=>{const n=i+1,done=n<=perfect,cur=n==perfect+1,top=n==LEN;
+   const fill=top?"#ffc83d":done?"#fc5200":cur?"#fffaf2":"#dfe6ea",sh=done?"#c43f00":"#b8c2ca";
+   g+=`<g class="node"><ellipse cx="${x}" cy="${y+6}" rx="${top?26:21}" ry="11" fill="#1c2630"/><ellipse cx="${x}" cy="${y}" rx="${top?26:21}" ry="13" fill="${fill}" stroke="#1c2630" stroke-width="3"/><path d="M${x-15} ${y+5} a21 9 0 0 0 30 0" fill="${sh}" opacity=".5"/>
+   <text x="${x}" y="${y+5}" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="14" fill="${done?'#fff':'#1c2630'}">${top?'⚑':done?'★':n}</text></g>`;
+   if(cur)g+=`<g transform="translate(${x-22} ${y-58})"><g class="hero"><svg width="44" height="44" id="mapgoat"></svg></g></g>`});
+ g+=`<text x="150" y="${H*.02+28}" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="16" fill="#1c2630">SUMMIT · DAY ${LEN}</text></svg>`;
+ const m=$("#map");m.innerHTML=g;goat($("#mapgoat"),2);
+ requestAnimationFrame(()=>m.scrollTop=pts[perfect][1]-380);
+})();
+
+// ---- sound (WebAudio, starts on first tap) ----
+let ac,muted=false;
+function tone(f,t=0,d=.12,type="square",v=.06){if(muted)return;ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,ac.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+t+d);o.connect(g).connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+d)}
+const sfx={check:n=>{tone(523+n*70);tone(784+n*70,.06)},un:()=>tone(220,0,.1,"triangle"),win:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.09,.25))};
+$("#mute").onclick=()=>{muted=!muted;$("#mute").textContent=muted?"🔇":"🔊"};
+
+// ---- today ----
+const done=new Set(),LINES=[
+ ["Morning! Six tasks between you and the next space.",0],
+ ["First one down. The trail starts with one step.",1],
+ ["Two for two. You're warming up nicely.",1],
+ ["Halfway up today's ridge. Keep that pace.",1],
+ ["Four done! Stronger than yesterday already.",1],
+ ["One left. Finish it and we climb together!",2],
+ ["PERFECT DAY! Energy maxed. Up the mountain we go!",2]];
+function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});$("#tDate").textContent=`Day ${DAY} of ${LEN} · `+d.toLocaleDateString([], {weekday:"short",month:"short",day:"numeric"})}
+clock();setInterval(clock,15000);
+function renderToday(){const p=Math.round(done.size/TASKS.length*100),perfect=p==100;
+ $("#list").innerHTML=TASKS.map(([i,t],k)=>`<button class="task ${done.has(k)?'done':''}" data-k="${k}"><span class="box">${done.has(k)?'✓':''}</span><span class="t">${i} ${t}</span><span class="c">+${COIN}</span></button>`).join("");
+ $("#meter").style.width=p+"%";$("#tCoins").textContent="● "+done.size*COIN+(perfect?" +50":"");
+ $("#tGrade").textContent=grade(p,perfect);$("#tStreak").textContent="🔥 "+(perfect?5:4);
+ const[l,m]=LINES[done.size];$("#say").textContent=l;goat($("#ridge"),m);
+ $("#ins").className="insight"+(done.has(5)?"":" warn");
+ $("#ins").textContent=done.has(5)?"🧘 Five days of meditation in a row. Your calmest streak yet.":"🌙 Lights-out slipped 3 of the last 7 nights. Try a 10:00 phone alarm tonight. You've got this.";}
+$("#list").onclick=e=>{const b=e.target.closest(".task");if(!b)return;const k=+b.dataset.k;
+ if(done.has(k)){done.delete(k);sfx.un()}else{done.add(k);sfx.check(done.size)}
+ renderToday();$(`.task[data-k="${k}"]`).classList.add("pop");
+ if(done.size==TASKS.length)setTimeout(power,350)};
+function power(){sfx.win();const d=document.createElement("div");d.className="power";
+ d.innerHTML=`<div class="rays"></div><div class="in"><svg width="120" height="120" id="pg"></svg><h2>SUPERCHARGED!</h2><p>Perfect day · Grade S+<br>+110 coins · Streak 🔥 5<br>Ridge climbs to space 6</p><button class="btn">Forge ahead ▸</button></div>`;
+ $("#today").appendChild(d);goat(d.querySelector("#pg"),2);d.querySelector(".btn").onclick=()=>d.remove()}
+renderToday();
+
+// ---- sidebar ----
+let tab="ca",sel=7;
+const first=new Date();first.setDate(first.getDate()-(DAY-1));
+function side(){document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.t==tab));const s=$("#side");
+ if(tab=="ms"){const B=[["👣","First step",1],["🔥","3-day streak",1],["⭐","5 perfect days",1],["🌊","Cross the river",0],["🔥","7-day streak",0],["⛰","Foothills",0],["💯","10 perfect",0],["🦅","Above treeline",0],["⚑","Summit",0]];
+  s.innerHTML=`<div class="coach"><svg width="48" height="48" class="cs"></svg><div class="bubble">3 badges earned. The river crossing is 3 perfect days away.</div></div><div class="badges">${B.map(([i,t,on])=>`<div class="badge ${on?'':'off'}"><b>${i}</b>${t}</div>`).join("")}</div>`;goat(s.querySelector(".cs"),1)}
+ else if(tab=="pr"){const days=[...HIST,null];
+  s.innerHTML=`<div class="stat"><div><span class="lbl">Perfect days</span><b>5 / 7</b></div><div><span class="lbl">Coins</span><b>1,240</b></div><div><span class="lbl">Best streak</span><b>🔥 4</b></div><div><span class="lbl">Avg grade</span><b>A</b></div></div>
+  <span class="lbl">Completion by day</span><div class="bars">${HIST.map(p=>`<i class="${p==100?'p':''}" style="height:${p}%"></i>`).join("")}<i style="height:4%;border-style:dashed;background:none"></i></div>
+  <span class="lbl">Grade scale</span><div class="scale">${["S+","S","A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].map(g=>`<em>${g}</em>`).join("")}</div>
+  <div class="insight warn">🌙 Lights-out is your toughest task (4/7). Everything else is 6/7 or better.</div>`}
+ else{let h=`<div class="cal">${"SMTWTFS".split("").map(c=>`<span>${c}</span>`).join("")}`;
+  for(let i=0;i<first.getDay();i++)h+="<span></span>";
+  for(let d=1;d<=LEN;d++){const p=d<DAY?HIST[d-1]:null,cls=p==null?(d==DAY?"today":""):p==100?"p":p>=80?"ok":"low";
+   h+=`<button class="${cls} ${d==sel?'sel':''}" data-d="${d}" ${d>DAY?"disabled":""}>${d}<small>${p==null?'':grade(p,p==100&&d>2)}</small></button>`}
+  const p=sel<DAY?HIST[sel-1]:null,day=new Date(first);day.setDate(first.getDate()+sel-1);
+  const doneN=p==null?done.size:Math.round(p/100*TASKS.length);
+  h+=`</div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b>Day ${sel} · ${day.toLocaleDateString([], {month:"short",day:"numeric"})}</b>${p==null?'<span class="chip">Live</span>':'<span class="lock">🔒 Archived</span>'}</div>
+  <div class="tpl" style="gap:6px">${TASKS.map(([i,t],k)=>{const ok=p==null?done.has(k):k<doneN;return`<button class="task ${ok?'done':''}" ${p==null?'':'disabled'}><span class="box">${ok?'✓':''}</span><span class="t">${i} ${t}</span></button>`}).join("")}</div>`;
+  s.innerHTML=h}}
+document.querySelector(".tabs").onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;side()}};
+$("#side").onclick=e=>{const b=e.target.closest(".cal button");if(b){sel=+b.dataset.d;side()}};
+side();
+</script>
