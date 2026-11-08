@@ -118,7 +118,7 @@ input[type=text]{font:800 15px var(--body);border:3px solid var(--ink);border-ra
     <h1>Summit <span>Streak</span></h1>
     <p>Four live UI prototypes for a 30-day challenge game. Tap tasks on the <b>Today</b> phone to earn coins, change your grade and hear the coach. Finish every task to see the power-up.</p>
   </div>
-  <div class="note"><b>Placeholder tasks.</b> Your 30-day challenge file didn't come through, so these six tasks come from your existing blueprint. Send the file and I'll swap them in.</div>
+  <div class="note"><b>Your real challenge.</b> 20 daily tasks from your file. Started Nov 5, so today is Day 4. Day 3 (Nov 7) is filled in from your checkmarks. Days 1–2 have no record yet.</div>
 </header>
 
 <div class="row">
@@ -128,7 +128,7 @@ input[type=text]{font:800 15px var(--body);border:3px solid var(--ink);border-ra
       <div class="pad">
         <div class="coach"><svg width="56" height="56" class="coachsvg"></svg><div class="bubble">Hey! I'm Ridge. Let's build the daily list you'll repeat until the summit.</div></div>
         <label class="lbl" for="cname">Challenge name</label>
-        <input id="cname" type="text" value="30-Day Recomp Climb">
+        <input id="cname" type="text" value="30 Day Challenge">
         <span class="lbl">Length</span>
         <div class="lens" id="lens"><button>7</button><button>14</button><button aria-pressed="true">30</button><button>60</button></div>
         <span class="lbl">Daily checklist template</span>
@@ -141,25 +141,25 @@ input[type=text]{font:800 15px var(--body);border:3px solid var(--ink);border-ra
 
   <figure>
     <div class="phone">
-      <div class="bar"><span class="chip fire">🔥 4</span><span class="chip coin">● 1,240</span><span class="grade">S+</span></div>
+      <div class="bar"><span class="chip fire">🔥 0</span><span class="chip coin">● 60</span><span class="grade">D</span></div>
       <div class="map" id="map"></div>
       <div class="nav"><span class="on"><b>⛰</b>Map</span><span><b>✓</b>Today</span><span><b>☰</b>Journal</span><span><b>☺</b>Profile</span></div>
     </div>
-    <figcaption>2 · Trail map<small>Forest → river → foothills → summit. One space per perfect day.</small></figcaption>
+    <figcaption>2 · Trail map<small>Forest → river → foothills → summit. One space per perfect day. 0 so far.</small></figcaption>
   </figure>
 
   <figure>
     <div class="phone" id="today">
-      <div class="bar"><span class="chip fire" id="tStreak">🔥 4</span><span class="chip coin" id="tCoins">● 0</span><span class="grade" id="tGrade">F</span></div>
+      <div class="bar"><span class="chip fire" id="tStreak">🔥 0</span><span class="chip coin" id="tCoins">● 0</span><span class="grade" id="tGrade">F</span></div>
       <div class="pad">
         <div style="display:flex;justify-content:space-between;align-items:end;position:relative">
-          <div><div class="lbl" id="tDate">Day 8 of 30</div><div class="clock" id="clock">--:--</div></div>
+          <div><div class="lbl" id="tDate">Day 4 of 30</div><div class="clock" id="clock">--:--</div></div>
           <button class="mute" id="mute" aria-label="Toggle sound">🔊</button>
         </div>
-        <div class="coach"><svg width="62" height="62" class="coachsvg" id="ridge"></svg><div class="bubble" id="say">Morning! Six tasks between you and the next space.</div></div>
+        <div class="coach"><svg width="62" height="62" class="coachsvg" id="ridge"></svg><div class="bubble" id="say">Morning! 20 tasks between you and the next space.</div></div>
         <div class="meter"><div id="meter" style="width:0"></div></div>
         <div class="tpl" id="list" style="gap:8px"></div>
-        <div class="insight" id="ins">🧘 Five days of meditation in a row. Your calmest streak yet.</div>
+        <div class="insight" id="ins">☀️ Yesterday you nailed sunlight, grounding, reading and clean eating.</div>
       </div>
     </div>
     <figcaption>3 · Today<small>Live clock, checklist, coins and a coach who reacts to every check.</small></figcaption>
@@ -176,10 +176,11 @@ input[type=text]{font:800 15px var(--body);border:3px solid var(--ink);border-ra
 </div>
 
 <script>
-const TASKS=[["🏃","Morning run"],["🥩","Hit 190 g protein"],["💧","Drink 2 gal water"],["🏋","Strength session"],["🧘","Meditate 10 min"],["🌙","Lights out by 10:30"]];
-const COIN=10, DAY=8, LEN=30;
-// past days: % complete per day 1..7 (sample history)
-const HIST=[100,83,100,100,100,100,67];
+const TASKS=[["💪","Daily strength (20–30 min)"],["🤸","Mobility training (10–15 min)"],["👟","Walk 10k steps (20k optimal)"],["✍️","Write 1–2 shitty pages"],["🎧","Make 1 shitty beat"],["📖","Read a book (10 pages)"],["🦶","Ground barefoot"],["☀️","Morning sunlight (5 min)"],["🥗","Eat clean: protein + fiber"],["📊","Track progress"],["🧘","Meditate (5 min)"],["🗣","Learn a language (5 min)"],["💧","Hydration / vits / supplements"],["🪑","Sit on the floor (5 min)"],["💬","Positive affirmations"],["🗓","Plan tomorrow (evening)"],["😴","Sleep 8–9 hours"],["📓","Journal your day"],["📵","Be conscious of screen time"],["📚","Study for 1 hour"]];
+const N=TASKS.length, COIN=10, BONUS=50, DAY=4, LEN=30, START=new Date(2026,10,5);
+// real history: day -> indices checked (null = no record). Day 3 from your 11/07 note.
+const HIST=[null,null,[5,6,7,8,11,12]];
+const pct=d=>HIST[d-1]==null?null:Math.round(HIST[d-1].length/N*100);
 const $=s=>document.querySelector(s);
 
 function grade(p,streak){if(p>=100)return streak?"S+":"S";const t=[[95,"A+"],[90,"A"],[85,"A-"],[80,"B+"],[75,"B"],[70,"B-"],[65,"C+"],[60,"C"],[55,"C-"],[45,"D+"],[30,"D"],[1,"D-"]];for(const[m,g]of t)if(p>=m)return g;return"F"}
@@ -202,6 +203,7 @@ $("#tpl").innerHTML=TASKS.map(([i,t])=>`<div><i>${i}</i>${t}</div>`).join("")+`<
 $("#lens").onclick=e=>{if(e.target.tagName!="BUTTON")return;[...e.currentTarget.children].forEach(b=>b.setAttribute("aria-pressed",b==e.target))};
 
 // ---- map ----
+const PERFECT=HIST.filter(h=>h&&h.length==N).length;
 (function(){const W=300,step=62,H=LEN*step+220,pts=[];
  for(let d=1;d<=LEN;d++){const y=H-90-(d-1)*step;pts.push([150+Math.sin(d*.9)*80,y])}
  const biome=y=>{const f=1-y/H;return f<.3?"forest":f<.5?"river":f<.78?"hill":"peak"};
@@ -214,78 +216,69 @@ $("#lens").onclick=e=>{if(e.target.tagName!="BUTTON")return;[...e.currentTarget.
  <path d="M150 ${H*.02+64} L170 ${H*.02+40} L192 ${H*.02+68} L178 ${H*.02+62} L168 ${H*.02+74} L160 ${H*.02+64}z" fill="#f4fbff"/>
  <path d="M-10 ${H*.58} C80 ${H*.54} 120 ${H*.64} 200 ${H*.6} S310 ${H*.56} 310 ${H*.56} L310 ${H*.62} C230 ${H*.64} 180 ${H*.7} 90 ${H*.65} S-10 ${H*.64} -10 ${H*.64}z" fill="#3ab0d9"/>
  </g>`;
- // trees & rocks
  let seed=7;const r=()=>(seed=(seed*9301+49297)%233280)/233280;
  for(let i=0;i<46;i++){const y=H*.42+r()*H*.56,x=r()<.5?r()*70:230+r()*70;
    if(biome(y)=="forest"||biome(y)=="hill"&&r()<.4) g+=`<g stroke="#1c2630" stroke-width="2.5" stroke-linejoin="round"><path d="M${x} ${y-26} L${x+13} ${y} L${x-13} ${y}z" fill="#2f8f5b"/><path d="M${x} ${y-26} L${x+13} ${y} L${x+3} ${y}z" fill="#1f6b42" stroke="none"/><rect x="${x-3}" y="${y}" width="6" height="7" fill="#8a5a3c"/></g>`;
    else g+=`<path d="M${x-10} ${y} L${x-4} ${y-10} L${x+8} ${y-8} L${x+12} ${y}z" fill="#9aa3ad" stroke="#1c2630" stroke-width="2.5"/>`}
- // path
  g+=`<polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#1c2630" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
  <polyline points="${pts.map(p=>p.join(",")).join(" ")}" fill="none" stroke="#fffaf2" stroke-width="8" stroke-dasharray="2 12" stroke-linecap="round"/>`;
- // nodes: you move up only on perfect days → position = # of perfect days
- const perfect=HIST.filter(p=>p==100).length; // 5
- pts.forEach(([x,y],i)=>{const n=i+1,done=n<=perfect,cur=n==perfect+1,top=n==LEN;
+ pts.forEach(([x,y],i)=>{const n=i+1,done=n<=PERFECT,cur=n==PERFECT+1,top=n==LEN;
    const fill=top?"#ffc83d":done?"#fc5200":cur?"#fffaf2":"#dfe6ea",sh=done?"#c43f00":"#b8c2ca";
    g+=`<g class="node"><ellipse cx="${x}" cy="${y+6}" rx="${top?26:21}" ry="11" fill="#1c2630"/><ellipse cx="${x}" cy="${y}" rx="${top?26:21}" ry="13" fill="${fill}" stroke="#1c2630" stroke-width="3"/><path d="M${x-15} ${y+5} a21 9 0 0 0 30 0" fill="${sh}" opacity=".5"/>
    <text x="${x}" y="${y+5}" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="14" fill="${done?'#fff':'#1c2630'}">${top?'⚑':done?'★':n}</text></g>`;
    if(cur)g+=`<g transform="translate(${x-22} ${y-58})"><g class="hero"><svg width="44" height="44" id="mapgoat"></svg></g></g>`});
  g+=`<text x="150" y="${H*.02+28}" text-anchor="middle" font-family="Lilita One,sans-serif" font-size="16" fill="#1c2630">SUMMIT · DAY ${LEN}</text></svg>`;
  const m=$("#map");m.innerHTML=g;goat($("#mapgoat"),2);
- requestAnimationFrame(()=>m.scrollTop=pts[perfect][1]-380);
+ requestAnimationFrame(()=>m.scrollTop=pts[PERFECT][1]-380);
 })();
 
 // ---- sound (WebAudio, starts on first tap) ----
 let ac,muted=false;
 function tone(f,t=0,d=.12,type="square",v=.06){if(muted)return;ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,ac.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+t+d);o.connect(g).connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+d)}
-const sfx={check:n=>{tone(523+n*70);tone(784+n*70,.06)},un:()=>tone(220,0,.1,"triangle"),win:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.09,.25))};
+const sfx={check:n=>{const f=440*Math.pow(2,(n%12)/12);tone(f);tone(f*1.5,.06)},un:()=>tone(220,0,.1,"triangle"),win:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.09,.25))};
 $("#mute").onclick=()=>{muted=!muted;$("#mute").textContent=muted?"🔇":"🔊"};
 
 // ---- today ----
-const done=new Set(),LINES=[
- ["Morning! Six tasks between you and the next space.",0],
- ["First one down. The trail starts with one step.",1],
- ["Two for two. You're warming up nicely.",1],
- ["Halfway up today's ridge. Keep that pace.",1],
- ["Four done! Stronger than yesterday already.",1],
- ["One left. Finish it and we climb together!",2],
- ["PERFECT DAY! Energy maxed. Up the mountain we go!",2]];
+const done=new Set();
+// coach lines by progress band [minPct, line, mood]
+const LINES=[[0,"Morning! 20 tasks between you and the next space.",0],[1,"First one down. The trail starts with one step.",1],[25,"A quarter done. You're warming up nicely.",1],[50,"Halfway up today's ridge. Keep that pace.",1],[75,"Three quarters! Stronger than yesterday already.",1],[90,"Almost there. Finish it and we climb together!",2],[100,"PERFECT DAY! Energy maxed. Up the mountain we go!",2]];
 function clock(){const d=new Date();$("#clock").textContent=d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});$("#tDate").textContent=`Day ${DAY} of ${LEN} · `+d.toLocaleDateString([], {weekday:"short",month:"short",day:"numeric"})}
 clock();setInterval(clock,15000);
-function renderToday(){const p=Math.round(done.size/TASKS.length*100),perfect=p==100;
+function renderToday(){const p=Math.round(done.size/N*100),perfect=p==100;
  $("#list").innerHTML=TASKS.map(([i,t],k)=>`<button class="task ${done.has(k)?'done':''}" data-k="${k}"><span class="box">${done.has(k)?'✓':''}</span><span class="t">${i} ${t}</span><span class="c">+${COIN}</span></button>`).join("");
- $("#meter").style.width=p+"%";$("#tCoins").textContent="● "+done.size*COIN+(perfect?" +50":"");
- $("#tGrade").textContent=grade(p,perfect);$("#tStreak").textContent="🔥 "+(perfect?5:4);
- const[l,m]=LINES[done.size];$("#say").textContent=l;goat($("#ridge"),m);
- $("#ins").className="insight"+(done.has(5)?"":" warn");
- $("#ins").textContent=done.has(5)?"🧘 Five days of meditation in a row. Your calmest streak yet.":"🌙 Lights-out slipped 3 of the last 7 nights. Try a 10:00 phone alarm tonight. You've got this.";}
+ $("#meter").style.width=p+"%";$("#tCoins").textContent="● "+(done.size*COIN+(perfect?BONUS:0));
+ $("#tGrade").textContent=grade(p,false);$("#tStreak").textContent="🔥 "+(perfect?1:0);
+ const[,l,m]=LINES.filter(x=>p>=x[0]).pop();$("#say").textContent=`${l} (${done.size}/${N})`;goat($("#ridge"),m);
+ const body=done.has(0)&&done.has(1);
+ $("#ins").className="insight"+(body?"":" warn");
+ $("#ins").textContent=body?"💪 Strength and mobility both done. That's the pair you skipped yesterday. Big win.":"☀️ Yesterday you nailed sunlight, grounding, reading and clean eating. Strength and mobility were skipped, so start there today.";}
 $("#list").onclick=e=>{const b=e.target.closest(".task");if(!b)return;const k=+b.dataset.k;
  if(done.has(k)){done.delete(k);sfx.un()}else{done.add(k);sfx.check(done.size)}
  renderToday();$(`.task[data-k="${k}"]`).classList.add("pop");
- if(done.size==TASKS.length)setTimeout(power,350)};
+ if(done.size==N)setTimeout(power,350)};
 function power(){sfx.win();const d=document.createElement("div");d.className="power";
- d.innerHTML=`<div class="rays"></div><div class="in"><svg width="120" height="120" id="pg"></svg><h2>SUPERCHARGED!</h2><p>Perfect day · Grade S+<br>+110 coins · Streak 🔥 5<br>Ridge climbs to space 6</p><button class="btn">Forge ahead ▸</button></div>`;
+ d.innerHTML=`<div class="rays"></div><div class="in"><svg width="120" height="120" id="pg"></svg><h2>SUPERCHARGED!</h2><p>Perfect day · Grade S<br>+${N*COIN+BONUS} coins · Perfect streak starts 🔥 1<br>Ridge climbs to space ${PERFECT+2}</p><button class="btn">Forge ahead ▸</button></div>`;
  $("#today").appendChild(d);goat(d.querySelector("#pg"),2);d.querySelector(".btn").onclick=()=>d.remove()}
 renderToday();
 
 // ---- sidebar ----
-let tab="ca",sel=7;
-const first=new Date();first.setDate(first.getDate()-(DAY-1));
+let tab="ca",sel=3;
 function side(){document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.t==tab));const s=$("#side");
- if(tab=="ms"){const B=[["👣","First step",1],["🔥","3-day streak",1],["⭐","5 perfect days",1],["🌊","Cross the river",0],["🔥","7-day streak",0],["⛰","Foothills",0],["💯","10 perfect",0],["🦅","Above treeline",0],["⚑","Summit",0]];
-  s.innerHTML=`<div class="coach"><svg width="48" height="48" class="cs"></svg><div class="bubble">3 badges earned. The river crossing is 3 perfect days away.</div></div><div class="badges">${B.map(([i,t,on])=>`<div class="badge ${on?'':'off'}"><b>${i}</b>${t}</div>`).join("")}</div>`;goat(s.querySelector(".cs"),1)}
- else if(tab=="pr"){const days=[...HIST,null];
-  s.innerHTML=`<div class="stat"><div><span class="lbl">Perfect days</span><b>5 / 7</b></div><div><span class="lbl">Coins</span><b>1,240</b></div><div><span class="lbl">Best streak</span><b>🔥 4</b></div><div><span class="lbl">Avg grade</span><b>A</b></div></div>
-  <span class="lbl">Completion by day</span><div class="bars">${HIST.map(p=>`<i class="${p==100?'p':''}" style="height:${p}%"></i>`).join("")}<i style="height:4%;border-style:dashed;background:none"></i></div>
+ if(tab=="ms"){const B=[["👣","First step",1],["🔥","3-day streak",0],["⭐","First perfect day",0],["🌊","Cross the river",0],["🔥","7-day streak",0],["⛰","Foothills",0],["💯","10 perfect",0],["🦅","Above treeline",0],["⚑","Summit",0]];
+  s.innerHTML=`<div class="coach"><svg width="48" height="48" class="cs"></svg><div class="bubble">You've started the climb! Your first perfect day unlocks the next badge.</div></div><div class="badges">${B.map(([i,t,on])=>`<div class="badge ${on?'':'off'}"><b>${i}</b>${t}</div>`).join("")}</div>`;goat(s.querySelector(".cs"),1)}
+ else if(tab=="pr"){
+  s.innerHTML=`<div class="stat"><div><span class="lbl">Perfect days</span><b>${PERFECT} / ${DAY-1}</b></div><div><span class="lbl">Coins</span><b>60</b></div><div><span class="lbl">Best streak</span><b>🔥 0</b></div><div><span class="lbl">Avg grade</span><b>D</b></div></div>
+  <span class="lbl">Completion by day</span><div class="bars">${HIST.map((h,i)=>{const p=pct(i+1);return p==null?`<i style="height:4%;border-style:dashed;background:none"></i>`:`<i class="${p==100?'p':''}" style="height:${p}%"></i>`}).join("")}<i style="height:4%;border-style:dashed;background:none"></i></div>
   <span class="lbl">Grade scale</span><div class="scale">${["S+","S","A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].map(g=>`<em>${g}</em>`).join("")}</div>
-  <div class="insight warn">🌙 Lights-out is your toughest task (4/7). Everything else is 6/7 or better.</div>`}
+  <div class="insight warn">💪 Your morning rituals are solid. The work blocks (strength, writing, beat, study) are where the points are waiting.</div>`}
  else{let h=`<div class="cal">${"SMTWTFS".split("").map(c=>`<span>${c}</span>`).join("")}`;
-  for(let i=0;i<first.getDay();i++)h+="<span></span>";
-  for(let d=1;d<=LEN;d++){const p=d<DAY?HIST[d-1]:null,cls=p==null?(d==DAY?"today":""):p==100?"p":p>=80?"ok":"low";
-   h+=`<button class="${cls} ${d==sel?'sel':''}" data-d="${d}" ${d>DAY?"disabled":""}>${d}<small>${p==null?'':grade(p,p==100&&d>2)}</small></button>`}
-  const p=sel<DAY?HIST[sel-1]:null,day=new Date(first);day.setDate(first.getDate()+sel-1);
-  const doneN=p==null?done.size:Math.round(p/100*TASKS.length);
-  h+=`</div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b>Day ${sel} · ${day.toLocaleDateString([], {month:"short",day:"numeric"})}</b>${p==null?'<span class="chip">Live</span>':'<span class="lock">🔒 Archived</span>'}</div>
-  <div class="tpl" style="gap:6px">${TASKS.map(([i,t],k)=>{const ok=p==null?done.has(k):k<doneN;return`<button class="task ${ok?'done':''}" ${p==null?'':'disabled'}><span class="box">${ok?'✓':''}</span><span class="t">${i} ${t}</span></button>`}).join("")}</div>`;
+  for(let i=0;i<START.getDay();i++)h+="<span></span>";
+  for(let d=1;d<=LEN;d++){const p=d<DAY?pct(d):null,cls=d==DAY?"today":p==null?"":p==100?"p":p>=80?"ok":"low";
+   h+=`<button class="${cls} ${d==sel?'sel':''}" data-d="${d}" ${d>DAY?"disabled":""}>${d}<small>${d<DAY?(p==null?'–':grade(p,false)):''}</small></button>`}
+  const live=sel==DAY,rec=live?null:HIST[sel-1],day=new Date(START);day.setDate(START.getDate()+sel-1);
+  h+=`</div><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><b>Day ${sel} · ${day.toLocaleDateString([], {month:"short",day:"numeric"})}</b>${live?'<span class="chip">Live</span>':'<span class="lock">🔒 Archived</span>'}</div>`;
+  if(!live&&rec==null)h+=`<div class="insight">No record for this day. Archived days can't be filled in later.</div>`;
+  else h+=`<div class="tpl" style="gap:6px">${TASKS.map(([i,t],k)=>{const ok=live?done.has(k):rec.includes(k);return`<button class="task ${ok?'done':''}" ${live?'':'disabled'}><span class="box">${ok?'✓':''}</span><span class="t">${i} ${t}</span></button>`}).join("")}</div>`;
   s.innerHTML=h}}
 document.querySelector(".tabs").onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;side()}};
 $("#side").onclick=e=>{const b=e.target.closest(".cal button");if(b){sel=+b.dataset.d;side()}};
